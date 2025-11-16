@@ -1,113 +1,81 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { db } from "../lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { useState } from "react";
 
-export default function HomePage() {
+export default function Home() {
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">(
+  const [status, setStatus] = useState<"idle" | "saving" | "done" | "error">(
     "idle"
   );
-  const [message, setMessage] = useState("");
 
-  const handleSubmit = async (e: FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email || !email.includes("@")) {
-      setStatus("error");
-      setMessage("Please enter a valid email address.");
-      return;
-    }
+
+    if (!email || email.trim() === "") return;
+
+    setStatus("saving");
 
     try {
-      setStatus("loading");
-      setMessage("");
-
-      await addDoc(collection(db, "early_access_signups"), {
-        email: email.trim().toLowerCase(),
-        createdAt: serverTimestamp(),
-        source: "landing_page",
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
       });
 
-      setStatus("success");
-      setMessage("You’re in. We’ll let you know when Rivva is ready.");
-      setEmail("");
-    } catch (err) {
-      console.error(err);
+      if (res.ok) {
+        setStatus("done");
+        setEmail("");
+      } else {
+        setStatus("error");
+      }
+    } catch (error) {
+      console.error("Subscribe error:", error);
       setStatus("error");
-      setMessage("Something went wrong. Please try again in a moment.");
     }
-  };
+  }
 
   return (
-    <main className="page">
-      <section className="card">
-        <div className="logo-row">
-          <div className="logo-icon">
-            <div className="logo-heartline" />
-          </div>
-          <div>
-            <div className="logo-text">rivva</div>
-            <div style={{ fontSize: "0.7rem", color: "#9ca3af" }}>
-              connection made smarter
-            </div>
-          </div>
-        </div>
+    <main className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
+      <h1 className="text-5xl font-bold mb-4">Rivva</h1>
+      <p className="text-lg text-gray-600 mb-8">
+        Be the first to know when we launch.
+      </p>
 
-        <div className="chip">
-          <span className="chip-dot" />
-          <span>AI-guided dating for emotionally intelligent adults</span>
-        </div>
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col sm:flex-row gap-3 w-full max-w-md"
+      >
+        <input
+          type="email"
+          placeholder="Enter your email"
+          value={email}
+          required
+          onChange={(e) => setEmail(e.target.value)}
+          className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+        />
 
-        <h1 className="hero">
-          <span className="hero-gradient">Connection Made Smarter.</span>
-        </h1>
-        <p className="sub">
-          Rivva helps you meet someone who actually gets you — with Lumi, your
-          AI friend for better conversations, better matches, and better
-          decisions in dating.
-        </p>
+        <button
+          type="submit"
+          disabled={status === "saving"}
+          className={`px-6 py-3 rounded-lg text-white font-semibold ${
+            status === "saving"
+              ? "bg-purple-400 cursor-not-allowed"
+              : "bg-purple-600 hover:bg-purple-700"
+          }`}
+        >
+          {status === "saving"
+            ? "Saving..."
+            : status === "done"
+            ? "Saved!"
+            : "Notify Me"}
+        </button>
+      </form>
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-row">
-            <input
-              className="email"
-              type="email"
-              placeholder="Enter your email to get early access"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={status === "loading"}
-            />
-            <button
-              className="cta"
-              type="submit"
-              disabled={status === "loading"}
-            >
-              {status === "loading" ? "Saving..." : "Get Early Access"}
-            </button>
-          </div>
-          <div className="helper-text-wrapper">
-            {status === "success" && (
-              <p className="helper-text helper-success">{message}</p>
-            )}
-            {status === "error" && (
-              <p className="helper-text helper-error">{message}</p>
-            )}
-            {status === "idle" && (
-              <p className="helper-text">
-                We’ll only email you about Rivva’s launch. No spam. Ever.
-              </p>
-            )}
-          </div>
-        </form>
-
-        <div className="footer">
-          <span>
-            Built for <strong>meaningful dating</strong>, not endless swiping.
-          </span>
-          <span>© {new Date().getFullYear()} rivva</span>
-        </div>
-      </section>
+      {status === "error" && (
+        <p className="text-red-500 mt-3">Something went wrong. Try again.</p>
+      )}
     </main>
   );
 }
