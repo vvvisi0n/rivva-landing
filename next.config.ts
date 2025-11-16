@@ -1,10 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
-  experimental: {
-    serverActions: true,
-  },
+  reactStrictMode: true,
+  // Remove experimental.serverActions entirely
+  // Remove output: "standalone"
 };
 
 export default nextConfig;
