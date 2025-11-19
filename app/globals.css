@@ -1,222 +1,208 @@
-/* app/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
+/* -----------------------------------------
+   GLOBAL BASE
+----------------------------------------- */
 
 html,
 body {
-  margin: 0;
   padding: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
-    "Inter", sans-serif;
-  background: radial-gradient(circle at top, #141927 0, #050509 60%);
-  color: #f9fafb;
+  margin: 0;
+  background-color: #FAF9FF; /* clean off-white with slight lavender warmth */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-body {
-  min-height: 100vh;
+* {
+  -webkit-tap-highlight-color: transparent;
 }
 
+/* Smooth transitions */
+button,
+input,
 a {
-  color: inherit;
-  text-decoration: none;
+  transition: all 0.2s ease;
 }
 
-.page {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
+/* -----------------------------------------
+   LUMI ORB
+----------------------------------------- */
+
+.orb-glow {
+  box-shadow: 0 0 30px 12px rgba(76, 79, 255, 0.42);
 }
 
-.card {
-  max-width: 720px;
-  width: 100%;
-  background: rgba(10, 11, 20, 0.92);
-  border-radius: 24px;
-  padding: 2.5rem 2.25rem;
-  border: 1px solid rgba(125, 249, 255, 0.12);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.7);
+/* Prevent autofill from ruining UI */
+input:-webkit-autofill {
+  transition: background-color 9999s ease-in-out 0s;
+}
+/* ============================= */
+/* SCROLL + FADE ANIMATIONS */
+/* ============================= */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  opacity: 0;
+  animation: fadeIn 0.9s ease-out forwards;
+}
+
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }
+.delay-600 { animation-delay: 0.6s; }
+.delay-700 { animation-delay: 0.7s; }
+.delay-800 { animation-delay: 0.8s; }
+.delay-900 { animation-delay: 0.9s; }
+
+/* FLOAT ANIMATION (LUMI ORB) */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* FADE UP */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0px);
+  }
+}
+
+.animate-fadeUp {
+  opacity: 0;
+  animation: fadeUp 1s ease-out forwards;
+}
+/* SECTION DIVIDER FADES */
+.section-divider {
   position: relative;
-  overflow: hidden;
 }
-
-.card::before {
+.section-divider::after {
   content: "";
   position: absolute;
-  inset: -40%;
-  opacity: 0.18;
-  background: radial-gradient(circle at top left, #7df9ff 0, transparent 55%),
-    radial-gradient(circle at bottom right, #38d8e8 0, transparent 55%);
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: -40px;
+  width: 70%;
+  height: 80px;
+  background: linear-gradient(to bottom, rgba(124, 58, 237, 0.18), transparent);
+  filter: blur(20px);
+  border-radius: 100%;
   z-index: -1;
 }
 
-.logo-row {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  margin-bottom: 1.25rem;
+/* HERO BACKGROUND GLOW */
+.hero-glow {
+  position: absolute;
+  top: -80px;
+  width: 1200px;
+  height: 600px;
+  background: radial-gradient(
+    circle at center,
+    rgba(147, 51, 234, 0.37),
+    rgba(147, 51, 234, 0.12),
+    transparent 70%
+  );
+  filter: blur(70px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: -1;
 }
 
-.logo-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  background: radial-gradient(circle at 30% 0%, #7df9ff, #38d8e8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 24px rgba(125, 249, 255, 0.9);
+/* PARALLAX FLOAT */
+@keyframes parallax {
+  0% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-10px) scale(1.02); }
+  100% { transform: translateY(0px) scale(1); }
 }
 
-.logo-heartline {
-  width: 26px;
-  height: 18px;
-  border-radius: 999px;
-  border: 2px solid rgba(9, 222, 255, 0.9);
-  border-top-color: transparent;
-  border-left-color: transparent;
-  transform: rotate(-15deg);
-  box-shadow: 0 0 12px rgba(125, 249, 255, 0.9);
+.animate-parallax {
+  animation: parallax 5s ease-in-out infinite;
 }
 
-.logo-text {
-  font-size: 1.1rem;
-  letter-spacing: 0.16em;
-  text-transform: lowercase;
-  color: #f9fafb;
+/* SCROLL PROGRESS BAR */
+#progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 4px;
+  background: linear-gradient(to right, #9333ea, #c084fc);
+  width: 0%;
+  z-index: 999;
+  transition: width 0.15s ease-out;
 }
 
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.3rem 0.75rem;
-  border-radius: 999px;
-  background: rgba(15, 118, 110, 0.16);
-  border: 1px solid rgba(125, 249, 255, 0.4);
-  color: #e5f9ff;
-  font-size: 0.75rem;
-  margin-bottom: 0.9rem;
+/* CARD HOVER EFFECT */
+.hover-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.hover-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(147, 51, 234, 0.25);
 }
 
-.chip-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: #7df9ff;
-  box-shadow: 0 0 12px rgba(125, 249, 255, 1);
+/* Floating animation */
+@keyframes floating {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+  100% { transform: translateY(0px); }
 }
 
-h1.hero {
-  font-size: clamp(2rem, 2.7vw, 2.6rem);
-  margin: 0 0 0.6rem;
+.animate-floating {
+  animation: floating 6s ease-in-out infinite;
 }
 
-.hero-gradient {
-  background: linear-gradient(120deg, #e5f9ff, #7df9ff);
-  -webkit-background-clip: text;
-  color: transparent;
+/* Cursor blink */
+@keyframes cursorBlink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
 }
 
-p.sub {
-  margin: 0 0 1.8rem;
-  color: #cbd5f5;
-  font-size: 0.95rem;
-  line-height: 1.6;
-  max-width: 32rem;
+.animate-cursor {
+  animation: cursorBlink 1s infinite;
 }
 
-.form-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
+/* Hologram floating motion */
+@keyframes holoFloat {
+  0% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-18px) scale(1.02); }
+  100% { transform: translateY(0px) scale(1); }
 }
 
-input.email {
-  flex: 1;
-  min-width: 0;
-  padding: 0.85rem 0.9rem;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.6);
-  background: rgba(15, 23, 42, 0.9);
-  color: #f9fafb;
-  font-size: 0.92rem;
-  outline: none;
+.animate-holoFloat {
+  animation: holoFloat 7s ease-in-out infinite;
 }
 
-input.email:focus {
-  border-color: #7df9ff;
-  box-shadow: 0 0 0 1px rgba(125, 249, 255, 0.3);
+/* Hologram pulse animation */
+@keyframes holoPulse {
+  0% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.08); }
+  100% { opacity: 0.35; transform: scale(1); }
 }
 
-button.cta {
-  padding: 0.9rem 1.4rem;
-  border-radius: 999px;
-  border: none;
-  background: linear-gradient(130deg, #7df9ff, #38d8e8);
-  color: #020617;
-  font-weight: 600;
-  font-size: 0.92rem;
-  cursor: pointer;
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  box-shadow: 0 12px 30px rgba(7, 89, 133, 0.7);
-}
-
-button.cta:disabled {
-  opacity: 0.7;
-  cursor: default;
-  box-shadow: none;
-}
-
-.helper-text {
-  font-size: 0.78rem;
-  color: #94a3b8;
-}
-
-.helper-success {
-  color: #a7f3d0;
-}
-
-.helper-error {
-  color: #fecaca;
-}
-
-.footer {
-  margin-top: 1.6rem;
-  font-size: 0.78rem;
-  color: #64748b;
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.footer span strong {
-  color: #e5e7eb;
-}
-
-@media (max-width: 640px) {
-  .card {
-    padding: 2rem 1.6rem;
-    border-radius: 20px;
-  }
-
-  .form-row {
-    flex-direction: column;
-  }
-
-  button.cta {
-    width: 100%;
-    justify-content: center;
-  }
+.animate-holoPulse {
+  animation: holoPulse 4s ease-in-out infinite;
 }
