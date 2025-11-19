@@ -12,7 +12,7 @@ export default function LumiPage() {
       </h1>
 
       <p className="text-slate-600 max-w-xl mb-8">
-        Lumi is Rivva&apos;s AI dating companion. This is a placeholder page while we finalize the experience.
+        Lumi is Rivva&apos;s AI dating companion. This page is a temporary placeholder.
       </p>
 
       <form
