@@ -1,10 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import HeroGlow from "./HeroGlow";
-import LumiOrb from "./LumiOrb";
-import LumiAvatar from "./LumiAvatar";
-import LumiTyping from "./LumiTyping";
 
 export default function Home() {
   const [email, setEmail] = useState("");
@@ -41,13 +37,10 @@ export default function Home() {
   return (
     <main className="relative overflow-hidden min-h-screen flex flex-col items-center justify-start px-6 pt-48 text-center bg-[#f7f7ff]">
       {/* ⭐ Beautiful AI Glow (behind Lumi & hero text) */}
-      <HeroGlow />
 
       {/* ⭐ Floating Lumi hologram */}
-      <LumiAvatar />
 
       {/* ⭐ Aura Orb */}
-      <LumiOrb />
 
       {/* LOGO */}
       <h1 className="text-7xl font-extrabold text-purple-700 drop-shadow-sm mb-3 tracking-tight z-10">
@@ -55,7 +48,6 @@ export default function Home() {
       </h1>
 
       {/* Lumi’s animated intro */}
-      <LumiTyping />
 
       {/* TAGLINES */}
       <p className="text-xl text-slate-700 font-medium mt-6 z-10">
