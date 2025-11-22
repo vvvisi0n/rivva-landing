@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import LumiOrb from "@/components/LumiOrb";
 import TypingBubble from "@/components/TypingBubble";
+import LumiVoiceButton from "@/components/LumiVoiceButton";
 
 type Option = { id: string; text: string; score: number };
 type Question = {
@@ -66,7 +67,8 @@ export default function QuizPage() {
   const current = QUESTIONS[index];
 
   const progress = useMemo(() => {
-    return Math.round(((index) / totalQuestions) * 100);
+    // show 0% on Q1, 100% after last answer
+    return Math.round((index / totalQuestions) * 100);
   }, [index, totalQuestions]);
 
   function pickOption(opt: Option) {
@@ -78,7 +80,6 @@ export default function QuizPage() {
     };
     setAnswers(nextAnswers);
 
-    // show Lumi thinking before next question
     setIsThinking(true);
 
     setTimeout(() => {
@@ -92,7 +93,6 @@ export default function QuizPage() {
           0
         );
 
-        // store for results page
         sessionStorage.setItem("rivva_quiz_score", String(score));
         sessionStorage.setItem(
           "rivva_quiz_answers",
@@ -129,17 +129,28 @@ export default function QuizPage() {
         </div>
 
         {/* Prompt */}
-        <h1 className="text-2xl md:text-3xl font-semibold leading-snug mb-6">
+        <h1 className="text-2xl md:text-3xl font-semibold leading-snug">
           {current.prompt}
         </h1>
 
+        {/* Lumi Voice (manual) */}
+        {!isThinking && (
+          <LumiVoiceButton
+            text={current.prompt}
+            className="mt-3"
+          />
+        )}
+
         {/* Typing Bubble */}
         {isThinking && (
-          <TypingBubble className="mb-6" label="Lumi is processing your vibe…" />
+          <TypingBubble
+            className="my-6"
+            label="Lumi is processing your vibe…"
+          />
         )}
 
         {/* Options */}
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 gap-3 mt-6">
           {current.options.map((opt) => (
             <button
               key={opt.id}
