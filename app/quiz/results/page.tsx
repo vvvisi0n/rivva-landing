@@ -14,6 +14,8 @@ export default function ResultsPage() {
 
   // ✅ Generate stable share URL on client
   const shareUrl = useMemo(() => {
+    const ogImageUrl = `/api/og?score=${numericScore}`;
+
     if (typeof window === "undefined") return "";
     const url = new URL(window.location.href);
     url.searchParams.set("score", String(numericScore));
@@ -99,6 +101,22 @@ export default function ResultsPage() {
         <p className="text-slate-600 mt-2">
           Let friends compare their energy with yours.
         </p>
+{/* Share card preview + download */}
+<div className="mt-6 flex flex-col items-center gap-3">
+  <img
+    src={ogImageUrl}
+    alt="Rivva share card"
+    className="w-full rounded-xl border border-purple-200 shadow-md"
+  />
+
+  <a
+    href={ogImageUrl}
+    download
+    className="px-5 py-2 bg-purple-100 hover:bg-purple-200 text-purple-900 font-semibold rounded-lg transition"
+  >
+    Download Share Card
+  </a>
+</div>
 
         <div className="mt-5 flex flex-col sm:flex-row gap-3 justify-center">
           {/* Native Share / Copy fallback */}
