@@ -67,7 +67,7 @@ export default function QuizPage() {
   const current = QUESTIONS[index];
 
   const progress = useMemo(() => {
-    // show 0% on Q1, 100% after last answer
+    // 0% on first question, increments as you advance
     return Math.round((index / totalQuestions) * 100);
   }, [index, totalQuestions]);
 
@@ -133,7 +133,7 @@ export default function QuizPage() {
           {current.prompt}
         </h1>
 
-        {/* Lumi Voice (manual) */}
+        {/* Lumi Voice */}
         {!isThinking && (
           <LumiVoiceButton
             text={current.prompt}
