@@ -60,6 +60,9 @@ export default function QuizPage() {
   const router = useRouter();
   const totalQuestions = QUESTIONS.length;
 
+  // NEW: intro gate
+  const [started, setStarted] = useState(false);
+
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, Option>>({});
   const [isThinking, setIsThinking] = useState(false);
@@ -67,9 +70,12 @@ export default function QuizPage() {
   const current = QUESTIONS[index];
 
   const progress = useMemo(() => {
-    // 0% on first question, increments as you advance
     return Math.round((index / totalQuestions) * 100);
   }, [index, totalQuestions]);
+
+  function startQuiz() {
+    setStarted(true);
+  }
 
   function pickOption(opt: Option) {
     if (isThinking) return;
@@ -104,16 +110,57 @@ export default function QuizPage() {
     }, 900);
   }
 
+  // ✅ INTRO SCREEN
+  if (!started) {
+    return (
+      <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center justify-center px-6 py-16 text-center">
+        <div className="mb-8">
+          <LumiOrb />
+        </div>
+
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+          Lumi’s Compatibility Scan
+        </h1>
+
+        <p className="mt-4 text-white/75 max-w-xl leading-relaxed">
+          I’ll ask a few quick questions to read your emotional vibe — how you
+          connect, communicate, and what feels “right” for you.
+        </p>
+
+        <p className="mt-3 text-white/60 max-w-xl text-sm leading-relaxed">
+          This takes under a minute. There are no wrong answers — just your
+          energy.
+        </p>
+
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <LumiVoiceButton textToSpeak="I’m Lumi. Answer honestly, and I’ll map your vibe in seconds." />
+          <span className="text-sm text-white/70">
+            Hear Lumi explain it
+          </span>
+        </div>
+
+        <button
+          onClick={startQuiz}
+          className="mt-10 px-8 py-4 rounded-2xl bg-gradient-to-r from-purple-500 to-cyan-400 text-black font-semibold text-lg hover:opacity-90 transition shadow-lg"
+        >
+          Start Quiz
+        </button>
+
+        <p className="mt-6 text-xs text-white/50">
+          Your answers stay on this device for now.
+        </p>
+      </main>
+    );
+  }
+
+  // ✅ QUIZ SCREEN (unchanged flow)
   return (
     <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center px-6 py-16">
-      {/* Orb */}
       <div className="mb-8">
         <LumiOrb />
       </div>
 
-      {/* Card */}
       <div className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-3xl p-8 shadow-xl">
-        {/* Progress */}
         <div className="flex items-center justify-between mb-6">
           <p className="text-sm text-white/70">
             Question {index + 1} of {totalQuestions}
@@ -128,29 +175,15 @@ export default function QuizPage() {
           />
         </div>
 
-        {/* Prompt */}
-        <h1 className="text-2xl md:text-3xl font-semibold leading-snug">
+        <h1 className="text-2xl md:text-3xl font-semibold leading-snug mb-6">
           {current.prompt}
         </h1>
 
-        {/* Lumi Voice */}
-        {!isThinking && (
-          <LumiVoiceButton
-            text={current.prompt}
-            className="mt-3"
-          />
-        )}
-
-        {/* Typing Bubble */}
         {isThinking && (
-          <TypingBubble
-            className="my-6"
-            label="Lumi is processing your vibe…"
-          />
+          <TypingBubble className="mb-6" label="Lumi is processing your vibe…" />
         )}
 
-        {/* Options */}
-        <div className="grid grid-cols-1 gap-3 mt-6">
+        <div className="grid grid-cols-1 gap-3">
           {current.options.map((opt) => (
             <button
               key={opt.id}
