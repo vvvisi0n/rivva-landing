@@ -54,9 +54,48 @@ const QUESTIONS: Question[] = [
       { id: "d", text: "You feel understood", score: 3 },
     ],
   },
+  {
+    id: "q5",
+    prompt: "What attracts you long-term?",
+    options: [
+      { id: "a", text: "Emotional consistency", score: 3 },
+      { id: "b", text: "Ambition and drive", score: 2 },
+      { id: "c", text: "Playful chemistry", score: 2 },
+      { id: "d", text: "Shared purpose", score: 3 },
+    ],
+  },
+  {
+    id: "q6",
+    prompt: "How do you usually show love?",
+    options: [
+      { id: "a", text: "Support + reliability", score: 3 },
+      { id: "b", text: "Words and reassurance", score: 3 },
+      { id: "c", text: "Physical affection", score: 2 },
+      { id: "d", text: "Acts of fun / adventure", score: 2 },
+    ],
+  },
+  {
+    id: "q7",
+    prompt: "If texting slows down, you assume…",
+    options: [
+      { id: "a", text: "They’re busy — no big deal", score: 3 },
+      { id: "b", text: "Maybe interest is fading", score: 1 },
+      { id: "c", text: "I’ll match their energy", score: 2 },
+      { id: "d", text: "I should check in directly", score: 3 },
+    ],
+  },
+  {
+    id: "q8",
+    prompt: "What do you want Rivva to protect you from?",
+    options: [
+      { id: "a", text: "Wasting time on mismatches", score: 3 },
+      { id: "b", text: "Emotional games", score: 3 },
+      { id: "c", text: "Boring connections", score: 2 },
+      { id: "d", text: "People who don’t get me", score: 3 },
+    ],
+  },
 ];
 
-// quick, natural Lumi reactions based on option score
 function lumiReaction(score: number) {
   if (score >= 3) return "Ooo okay… I see you.";
   if (score === 2) return "That makes sense. Interesting.";
@@ -77,6 +116,13 @@ export default function QuizPage() {
 
   const current = QUESTIONS[index];
 
+  const maxScore = useMemo(() => {
+    return QUESTIONS.reduce((sum, q) => {
+      const best = Math.max(...q.options.map(o => o.score));
+      return sum + best;
+    }, 0);
+  }, []);
+
   const progress = useMemo(() => {
     return Math.round((index / totalQuestions) * 100);
   }, [index, totalQuestions]);
@@ -94,6 +140,7 @@ export default function QuizPage() {
     setTimeout(() => {
       setIndex(index - 1);
       setTransitionOut(false);
+      setReaction(null);
     }, 220);
   }
 
@@ -106,13 +153,8 @@ export default function QuizPage() {
     };
     setAnswers(nextAnswers);
 
-    // Lumi reacts quickly
     setReaction(lumiReaction(opt.score));
-
-    // show Lumi thinking before next question
     setIsThinking(true);
-
-    // animate card out
     setTransitionOut(true);
 
     setTimeout(() => {
@@ -129,6 +171,7 @@ export default function QuizPage() {
         );
 
         sessionStorage.setItem("rivva_quiz_score", String(score));
+        sessionStorage.setItem("rivva_quiz_max", String(maxScore));
         sessionStorage.setItem(
           "rivva_quiz_answers",
           JSON.stringify(nextAnswers)
@@ -146,29 +189,23 @@ export default function QuizPage() {
 
   return (
     <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center px-6 py-16">
-      {/* Orb */}
       <div className="mb-8">
         <LumiOrb />
       </div>
 
-      {/* Card */}
       <div
         className={`w-full max-w-2xl bg-white/5 border border-white/10 rounded-3xl p-8 shadow-xl
         transition-all duration-300 ease-out
         ${transitionOut ? "opacity-0 translate-y-3 scale-[0.98]" : "opacity-100 translate-y-0 scale-100"}
       `}
       >
-        {/* Top row */}
         <div className="flex items-center justify-between mb-6">
           <p className="text-sm text-white/70">
             Question {index + 1} of {totalQuestions}
           </p>
-          <div className="flex items-center gap-3">
-            <p className="text-sm text-white/70">{progress}%</p>
-          </div>
+          <p className="text-sm text-white/70">{progress}%</p>
         </div>
 
-        {/* Progress bar */}
         <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden mb-6">
           <div
             className="h-full bg-gradient-to-r from-purple-500 to-cyan-400 transition-all duration-500"
@@ -176,7 +213,6 @@ export default function QuizPage() {
           />
         </div>
 
-        {/* Voice toggle + button */}
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={goBack}
@@ -202,18 +238,14 @@ export default function QuizPage() {
               Lumi Voice
             </label>
 
-            {voiceOn && (
-              <LumiVoiceButton text={voiceText} />
-            )}
+            {voiceOn && <LumiVoiceButton text={voiceText} />}
           </div>
         </div>
 
-        {/* Prompt */}
         <h1 className="text-2xl md:text-3xl font-semibold leading-snug mb-5">
           {current.prompt}
         </h1>
 
-        {/* Lumi reaction bubble */}
         {reaction && !isThinking && (
           <div className="mb-4 text-left">
             <div className="inline-block bg-white/10 border border-white/15 rounded-2xl px-4 py-2 text-sm text-white/90 animate-[fadeIn_0.25s_ease-out]">
@@ -222,12 +254,10 @@ export default function QuizPage() {
           </div>
         )}
 
-        {/* Typing Bubble */}
         {isThinking && (
           <TypingBubble className="mb-6" label="Lumi is processing your vibe…" />
         )}
 
-        {/* Options */}
         <div className="grid grid-cols-1 gap-3">
           {current.options.map((opt) => (
             <button
@@ -248,12 +278,10 @@ export default function QuizPage() {
         </div>
       </div>
 
-      {/* small helper */}
       <p className="text-xs text-white/50 mt-6">
         Your answers stay private. Lumi just uses them to read your vibe.
       </p>
 
-      {/* keyframes (Tailwind-safe) */}
       <style jsx global>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(3px); }
