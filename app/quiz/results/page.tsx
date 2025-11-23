@@ -27,6 +27,7 @@ const PROFILE_COPY: Record<
     needs: string[];
     matchesWith: string[];
     lumiLine: string;
+    shareLine: string;
   }
 > = {
   emotional: {
@@ -47,6 +48,8 @@ const PROFILE_COPY: Record<
     matchesWith: ["Grounded Builders", "Playful Sparklers"],
     lumiLine:
       "Your vibe is emotional clarity. You don’t just date — you bond.",
+    shareLine:
+      "I got my Rivva vibe: The Emotional Connector 💜 What’s yours?",
   },
   playful: {
     title: "The Playful Spark",
@@ -62,6 +65,8 @@ const PROFILE_COPY: Record<
     matchesWith: ["Emotional Connectors", "Adventurous Explorers"],
     lumiLine:
       "Your vibe is playful electricity. If it’s not fun, it’s not you.",
+    shareLine:
+      "I got my Rivva vibe: The Playful Spark ⚡️ What’s yours?",
   },
   adventurous: {
     title: "The Adventurous Explorer",
@@ -77,6 +82,8 @@ const PROFILE_COPY: Record<
     matchesWith: ["Playful Sparklers", "Emotional Connectors"],
     lumiLine:
       "Your vibe is forward motion. You want love that evolves.",
+    shareLine:
+      "I got my Rivva vibe: The Adventurous Explorer 🚀 What’s yours?",
   },
   grounded: {
     title: "The Grounded Builder",
@@ -92,22 +99,31 @@ const PROFILE_COPY: Record<
     matchesWith: ["Emotional Connectors", "Adventurous Explorers"],
     lumiLine:
       "Your vibe is secure structure. You build love that lasts.",
+    shareLine:
+      "I got my Rivva vibe: The Grounded Builder 🧱 What’s yours?",
   },
 };
 
 export default function QuizResultsPage() {
   const router = useRouter();
+
   const [totals, setTotals] = useState<Traits | null>(null);
   const [profile, setProfile] = useState<keyof Traits | null>(null);
   const [answers, setAnswers] = useState<AnswerMap | null>(null);
   const [mounted, setMounted] = useState(false);
+
+  // share feedback UI
+  const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "failed">("idle");
+
+  // save-to-waitlist UI
+  const [email, setEmail] = useState("");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "done" | "error">("idle");
 
   useEffect(() => {
     try {
       const rawTotals = sessionStorage.getItem("rivva_quiz_totals");
       const rawProfile = sessionStorage.getItem("rivva_quiz_profile");
       const rawAnswers = sessionStorage.getItem("rivva_quiz_answers");
-
       if (rawTotals) setTotals(JSON.parse(rawTotals));
       if (rawProfile) setProfile(rawProfile as keyof Traits);
       if (rawAnswers) setAnswers(JSON.parse(rawAnswers));
@@ -117,6 +133,32 @@ export default function QuizResultsPage() {
       setMounted(true);
     }
   }, []);
+
+  // Auto-speak Lumi line once on load (browser TTS)
+  useEffect(() => {
+    if (!mounted || !profile) return;
+
+    const line = PROFILE_COPY[profile].lumiLine;
+
+    if (typeof window === "undefined") return;
+    if (!("speechSynthesis" in window)) return;
+
+    // avoid double-speaking on strict-mode dev reloads
+    const alreadySpoken = sessionStorage.getItem("rivva_results_spoken");
+    if (alreadySpoken) return;
+
+    try {
+      const utter = new SpeechSynthesisUtterance(line);
+      utter.rate = 0.96;
+      utter.pitch = 1.05;
+      utter.volume = 1;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utter);
+      sessionStorage.setItem("rivva_results_spoken", "1");
+    } catch (e) {
+      console.warn("Auto-speak failed", e);
+    }
+  }, [mounted, profile]);
 
   const maxVal = useMemo(() => {
     if (!totals) return 1;
@@ -150,6 +192,64 @@ export default function QuizResultsPage() {
   const orderedTraits = (Object.entries(totals) as [keyof Traits, number][])
     .sort((a, b) => b[1] - a[1]);
 
+  async function handleShare() {
+    const shareText = copy.shareLine;
+    const shareUrl =
+      typeof window !== "undefined" ? window.location.origin + "/quiz" : "";
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "Rivva Vibe Results",
+          text: shareText,
+          url: shareUrl,
+        });
+        setShareStatus("idle");
+        return;
+      }
+
+      // fallback: copy to clipboard
+      await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+      setShareStatus("copied");
+      setTimeout(() => setShareStatus("idle"), 1500);
+    } catch (e) {
+      console.error(e);
+      setShareStatus("failed");
+      setTimeout(() => setShareStatus("idle"), 1500);
+    }
+  }
+
+  async function handleSaveEmail(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim()) return;
+
+    setSaveStatus("saving");
+
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // include extra fields so you can store them later if you want
+        body: JSON.stringify({
+          email,
+          profile,
+          totals,
+          answers,
+        }),
+      });
+
+      if (res.ok) {
+        setSaveStatus("done");
+        setEmail("");
+      } else {
+        setSaveStatus("error");
+      }
+    } catch (err) {
+      console.error(err);
+      setSaveStatus("error");
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center px-6 py-16">
       {/* Orb */}
@@ -159,7 +259,7 @@ export default function QuizResultsPage() {
 
       {/* Result Card */}
       <div className="w-full max-w-3xl bg-white/5 border border-white/10 rounded-3xl p-8 md:p-10 shadow-xl results-fade">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm text-white/70">Your Rivva Profile</p>
             <h1 className="text-3xl md:text-4xl font-bold mt-1">
@@ -168,8 +268,18 @@ export default function QuizResultsPage() {
             <p className="text-white/80 mt-2">{copy.subtitle}</p>
           </div>
 
-          <div className="shrink-0">
+          <div className="shrink-0 flex flex-col items-end gap-2">
             <LumiVoiceButton textToSpeak={copy.lumiLine} />
+            <button
+              onClick={handleShare}
+              className="px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-sm font-semibold hover:bg-white/15 transition"
+            >
+              {shareStatus === "copied"
+                ? "Copied!"
+                : shareStatus === "failed"
+                ? "Share failed"
+                : "Share your vibe"}
+            </button>
           </div>
         </div>
 
@@ -243,7 +353,7 @@ export default function QuizResultsPage() {
           </div>
         </div>
 
-        {/* Quick recap of answers (optional but nice) */}
+        {/* Answers */}
         {answers && (
           <div className="mt-10">
             <h2 className="text-xl font-semibold mb-3">Your Answers</h2>
@@ -260,6 +370,46 @@ export default function QuizResultsPage() {
             </div>
           </div>
         )}
+
+        {/* Save results to waitlist */}
+        <div className="mt-10 bg-white/5 border border-white/10 rounded-2xl p-5">
+          <h3 className="font-semibold mb-2">Save your results</h3>
+          <p className="text-sm text-white/70 mb-4">
+            Drop your email and we’ll attach your vibe to your early access invite.
+          </p>
+
+          <form onSubmit={handleSaveEmail} className="flex flex-col sm:flex-row gap-3">
+            <input
+              type="email"
+              required
+              placeholder="you@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="flex-1 px-4 py-3 rounded-xl bg-black/30 border border-white/15 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+            <button
+              type="submit"
+              disabled={saveStatus === "saving"}
+              className={`px-6 py-3 rounded-xl font-semibold transition ${
+                saveStatus === "saving"
+                  ? "bg-purple-400/60 cursor-not-allowed"
+                  : "bg-purple-600 hover:bg-purple-700"
+              }`}
+            >
+              {saveStatus === "saving"
+                ? "Saving..."
+                : saveStatus === "done"
+                ? "Saved!"
+                : "Save Results"}
+            </button>
+          </form>
+
+          {saveStatus === "error" && (
+            <p className="text-sm text-red-400 mt-3">
+              Couldn’t save right now. Try again.
+            </p>
+          )}
+        </div>
 
         {/* CTA Buttons */}
         <div className="mt-10 flex flex-col sm:flex-row gap-3">
@@ -279,11 +429,10 @@ export default function QuizResultsPage() {
         </div>
 
         <p className="text-xs text-white/50 mt-4">
-          Want Lumi to refine this over time? Join early access on the home page.
+          Lumi will refine this vibe over time as Rivva learns you.
         </p>
       </div>
 
-      {/* global fade */}
       <style jsx global>{`
         @keyframes resultsFade {
           from { opacity: 0; transform: translateY(10px); }
