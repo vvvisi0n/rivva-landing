@@ -145,6 +145,7 @@ export default function QuizPage() {
   const [isThinking, setIsThinking] = useState(false);
 
   const current = QUESTIONS[index];
+  const selectedForCurrent = answers[current.id];
 
   const progress = useMemo(
     () => Math.round((index / totalQuestions) * 100),
@@ -164,25 +165,31 @@ export default function QuizPage() {
     };
   }
 
+  function goBack() {
+    if (isThinking) return;
+    if (index === 0) return;
+    setIndex((i) => i - 1);
+  }
+
   function pickOption(opt: Option) {
     if (isThinking) return;
 
     const nextAnswers = { ...answers, [current.id]: opt };
     setAnswers(nextAnswers);
+
+    // Lumi “thinking” micro-pause
     setIsThinking(true);
 
     setTimeout(() => {
       setIsThinking(false);
 
       if (index + 1 < totalQuestions) {
-        setIndex(index + 1);
+        setIndex((i) => i + 1);
       } else {
-        // compute trait totals
         const totals = Object.values(nextAnswers).reduce((acc, a) => {
           return addTraits(acc, a.traits);
         }, EMPTY_TRAITS);
 
-        // choose strongest trait as profile
         const topTrait = (Object.entries(totals) as [keyof Traits, number][])
           .sort((a, b) => b[1] - a[1])[0][0];
 
@@ -192,7 +199,7 @@ export default function QuizPage() {
 
         router.push("/quiz/results");
       }
-    }, 900);
+    }, 700);
   }
 
   if (!started) {
@@ -233,11 +240,24 @@ export default function QuizPage() {
       </div>
 
       <div className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-3xl p-8 shadow-xl">
+        {/* Top row: back + progress */}
         <div className="flex items-center justify-between mb-6">
-          <p className="text-sm text-white/70">
-            Question {index + 1} of {totalQuestions}
-          </p>
-          <p className="text-sm text-white/70">{progress}%</p>
+          <button
+            onClick={goBack}
+            disabled={index === 0 || isThinking}
+            className={`text-sm px-3 py-1 rounded-lg border transition
+              ${
+                index === 0 || isThinking
+                  ? "opacity-40 border-white/10 cursor-not-allowed"
+                  : "border-white/20 hover:bg-white/10"
+              }`}
+          >
+            ← Back
+          </button>
+
+          <div className="text-sm text-white/70">
+            Question {index + 1} of {totalQuestions} • {progress}%
+          </div>
         </div>
 
         <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden mb-8">
@@ -247,32 +267,52 @@ export default function QuizPage() {
           />
         </div>
 
-        <h1 className="text-2xl md:text-3xl font-semibold leading-snug mb-6">
-          {current.prompt}
-        </h1>
+        {/* Animated question block */}
+        <div key={current.id} className="quiz-fade">
+          <h1 className="text-2xl md:text-3xl font-semibold leading-snug mb-6">
+            {current.prompt}
+          </h1>
 
-        {isThinking && (
-          <TypingBubble className="mb-6" label="Lumi is processing your vibe…" />
-        )}
+          {isThinking && (
+            <TypingBubble className="mb-6" label="Lumi is processing your vibe…" />
+          )}
 
-        <div className="grid grid-cols-1 gap-3">
-          {current.options.map((opt) => (
-            <button
-              key={opt.id}
-              onClick={() => pickOption(opt)}
-              disabled={isThinking}
-              className={`text-left px-5 py-4 rounded-2xl border transition
-                ${
-                  isThinking
-                    ? "bg-white/5 border-white/10 opacity-60 cursor-not-allowed"
-                    : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
-                }`}
-            >
-              {opt.text}
-            </button>
-          ))}
+          <div className="grid grid-cols-1 gap-3">
+            {current.options.map((opt) => {
+              const isSelected = selectedForCurrent?.id === opt.id;
+
+              return (
+                <button
+                  key={opt.id}
+                  onClick={() => pickOption(opt)}
+                  disabled={isThinking}
+                  className={`text-left px-5 py-4 rounded-2xl border transition
+                    ${
+                      isThinking
+                        ? "bg-white/5 border-white/10 opacity-60 cursor-not-allowed"
+                        : isSelected
+                        ? "bg-white/15 border-white/40 shadow-md"
+                        : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
+                    }`}
+                >
+                  {opt.text}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
+
+      {/* Simple fade/slide animation (no plugins needed) */}
+      <style jsx global>{`
+        @keyframes quizFade {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .quiz-fade {
+          animation: quizFade 0.35s ease;
+        }
+      `}</style>
     </main>
   );
 }
