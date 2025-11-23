@@ -2,207 +2,146 @@
 @tailwind components;
 @tailwind utilities;
 
-/* -----------------------------------------
-   GLOBAL BASE
------------------------------------------ */
+/* -----------------------------
+   Rivva Global Theme
+-------------------------------- */
 
-html,
+:root {
+  --bg: #0b0b14;
+  --bg-soft: rgba(255, 255, 255, 0.06);
+  --border-soft: rgba(255, 255, 255, 0.12);
+  --text: #ffffff;
+  --text-soft: rgba(255, 255, 255, 0.75);
+  --text-dim: rgba(255, 255, 255, 0.55);
+
+  --purple: #7c3aed;
+  --cyan: #22d3ee;
+}
+
+html, body {
+  height: 100%;
+}
+
 body {
-  padding: 0;
-  margin: 0;
-  background-color: #FAF9FF; /* clean off-white with slight lavender warmth */
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-feature-settings: "ss01" on, "ss02" on, "cv01" on;
+  text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-* {
-  -webkit-tap-highlight-color: transparent;
+/* Selection */
+::selection {
+  background: rgba(124, 58, 237, 0.35);
+  color: white;
 }
 
-/* Smooth transitions */
-button,
-input,
+/* Links */
 a {
-  transition: all 0.2s ease;
+  color: inherit;
+  text-decoration: none;
 }
 
-/* -----------------------------------------
-   LUMI ORB
------------------------------------------ */
-
-.orb-glow {
-  box-shadow: 0 0 30px 12px rgba(76, 79, 255, 0.42);
+/* Buttons focus */
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid rgba(124, 58, 237, 0.8);
+  outline-offset: 2px;
 }
 
-/* Prevent autofill from ruining UI */
-input:-webkit-autofill {
-  transition: background-color 9999s ease-in-out 0s;
-}
-/* ============================= */
-/* SCROLL + FADE ANIMATIONS */
-/* ============================= */
+/* -----------------------------
+   Typing Bubble Dots
+   used by <TypingBubble />
+-------------------------------- */
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(15px);
-  }
-  to {
-    opacity: 1;
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.9);
+  display: inline-block;
+  animation: lumiBounce 1.2s infinite ease-in-out;
+}
+
+.dot2 {
+  animation-delay: 0.15s;
+}
+.dot3 {
+  animation-delay: 0.3s;
+}
+
+@keyframes lumiBounce {
+  0%, 80%, 100% {
     transform: translateY(0);
+    opacity: 0.5;
   }
-}
-
-.animate-fadeIn {
-  opacity: 0;
-  animation: fadeIn 0.9s ease-out forwards;
-}
-
-.delay-100 { animation-delay: 0.1s; }
-.delay-200 { animation-delay: 0.2s; }
-.delay-300 { animation-delay: 0.3s; }
-.delay-400 { animation-delay: 0.4s; }
-.delay-500 { animation-delay: 0.5s; }
-.delay-600 { animation-delay: 0.6s; }
-.delay-700 { animation-delay: 0.7s; }
-.delay-800 { animation-delay: 0.8s; }
-.delay-900 { animation-delay: 0.9s; }
-
-/* FLOAT ANIMATION (LUMI ORB) */
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-12px); }
-  100% { transform: translateY(0px); }
-}
-
-.animate-float {
-  animation: float 4s ease-in-out infinite;
-}
-
-/* FADE UP */
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(40px);
-  }
-  to {
+  40% {
+    transform: translateY(-5px);
     opacity: 1;
-    transform: translateY(0px);
   }
 }
 
-.animate-fadeUp {
-  opacity: 0;
-  animation: fadeUp 1s ease-out forwards;
-}
-/* SECTION DIVIDER FADES */
-.section-divider {
-  position: relative;
-}
-.section-divider::after {
-  content: "";
+/* -----------------------------
+   Soft floating glow helpers
+-------------------------------- */
+
+.rivva-glow {
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: -40px;
-  width: 70%;
-  height: 80px;
-  background: linear-gradient(to bottom, rgba(124, 58, 237, 0.18), transparent);
-  filter: blur(20px);
-  border-radius: 100%;
-  z-index: -1;
+  inset: -20%;
+  background:
+    radial-gradient(closest-side, rgba(124, 58, 237, 0.22), transparent 60%),
+    radial-gradient(closest-side, rgba(34, 211, 238, 0.18), transparent 60%);
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
 }
 
-/* HERO BACKGROUND GLOW */
-.hero-glow {
-  position: absolute;
-  top: -80px;
-  width: 1200px;
-  height: 600px;
-  background: radial-gradient(
-    circle at center,
-    rgba(147, 51, 234, 0.37),
-    rgba(147, 51, 234, 0.12),
-    transparent 70%
-  );
-  filter: blur(70px);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: -1;
+/* -----------------------------
+   Nice scrollbars (optional)
+-------------------------------- */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.2) transparent;
 }
 
-/* PARALLAX FLOAT */
-@keyframes parallax {
-  0% { transform: translateY(0px) scale(1); }
-  50% { transform: translateY(-10px) scale(1.02); }
-  100% { transform: translateY(0px) scale(1); }
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.18);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.3);
+  background-clip: content-box;
 }
 
-.animate-parallax {
-  animation: parallax 5s ease-in-out infinite;
+/* --- TypingBubble dots --- */
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.8);
+  display: inline-block;
+  animation: typingBounce 1.2s infinite ease-in-out;
+}
+.typing-dot-2 { animation-delay: 0.15s; }
+.typing-dot-3 { animation-delay: 0.3s; }
+
+@keyframes typingBounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
+  40% { transform: translateY(-5px); opacity: 1; }
 }
 
-/* SCROLL PROGRESS BAR */
-#progress-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 4px;
-  background: linear-gradient(to right, #9333ea, #c084fc);
-  width: 0%;
-  z-index: 999;
-  transition: width 0.15s ease-out;
-}
-
-/* CARD HOVER EFFECT */
-.hover-card {
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-}
-.hover-card:hover {
-  transform: translateY(-6px) scale(1.02);
-  box-shadow: 0 12px 40px rgba(147, 51, 234, 0.25);
-}
-
-/* Floating animation */
-@keyframes floating {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-12px); }
-  100% { transform: translateY(0px); }
-}
-
-.animate-floating {
-  animation: floating 6s ease-in-out infinite;
-}
-
-/* Cursor blink */
-@keyframes cursorBlink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
-}
-
-.animate-cursor {
-  animation: cursorBlink 1s infinite;
-}
-
-/* Hologram floating motion */
-@keyframes holoFloat {
-  0% { transform: translateY(0px) scale(1); }
-  50% { transform: translateY(-18px) scale(1.02); }
-  100% { transform: translateY(0px) scale(1); }
-}
-
-.animate-holoFloat {
-  animation: holoFloat 7s ease-in-out infinite;
-}
-
-/* Hologram pulse animation */
-@keyframes holoPulse {
-  0% { opacity: 0.35; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.08); }
-  100% { opacity: 0.35; transform: scale(1); }
-}
-
-.animate-holoPulse {
-  animation: holoPulse 4s ease-in-out infinite;
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
 }
