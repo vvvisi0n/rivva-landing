@@ -1,233 +1,200 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-
 import LumiOrb from "@/components/LumiOrb";
-import TypingBubble from "@/components/TypingBubble";
 import LumiVoiceButton from "@/components/LumiVoiceButton";
 
-type Option = { id: string; text: string; score: number };
-type Answers = Record<string, Option>;
-
-type ResultBand = {
-  key: "deep" | "balanced" | "spark";
-  title: string;
-  subtitle: string;
-  description: string;
-  color: string; // tailwind class
-  tips: string[];
+type Traits = {
+  emotional: number;
+  playful: number;
+  adventurous: number;
+  grounded: number;
 };
 
-const BANDS: ResultBand[] = [
+const PROFILES: Record<
+  keyof Traits,
   {
-    key: "deep",
-    title: "Deep Connector",
-    subtitle: "emotion-first chemistry",
+    title: string;
+    oneLiner: string;
+    description: string;
+    strengths: string[];
+    growth: string[];
+    matchTips: string[];
+    voice: string;
+  }
+> = {
+  emotional: {
+    title: "The Deep Connector",
+    oneLiner: "You fall in love through feeling, safety, and emotional truth.",
     description:
-      "You bond through safety, meaning, and real emotional alignment. You’re not here for random sparks — you want connection that holds weight.",
-    color: "from-purple-400 to-cyan-300",
-    tips: [
-      "You thrive with people who communicate clearly.",
-      "You value consistency over intensity.",
-      "You’re at your best when trust builds steadily.",
+      "You’re tuned into energy, intention, and what’s underneath the words. You want a relationship that feels emotionally secure and real — not performative.",
+    strengths: ["Emotionally aware", "Loyal when safe", "Highly intuitive"],
+    growth: ["Don’t over-give early", "Ask directly for clarity", "Protect your softness"],
+    matchTips: [
+      "You pair best with someone communicative and steady.",
+      "Avoid inconsistency masked as charm.",
+      "Choose people who match your emotional rhythm."
     ],
+    voice: "Your emotional depth is your superpower. Rivva will help you find someone who can hold it — not fear it."
   },
-  {
-    key: "balanced",
-    title: "Balanced Builder",
-    subtitle: "slow burn + strong foundation",
+  playful: {
+    title: "The Spark Builder",
+    oneLiner: "You connect through laughter, chemistry, and fun.",
     description:
-      "You want both vibe and values. You’re open to fun, but you pay attention to how someone shows up over time.",
-    color: "from-cyan-300 to-purple-400",
-    tips: [
-      "You connect best with grounded people.",
-      "You prefer growth over drama.",
-      "You’re drawn to chemistry that feels calm and real.",
+      "You thrive when dating feels light, flirty, and alive. You want someone who brings curiosity and joy — not heaviness without meaning.",
+    strengths: ["Magnetic energy", "Great communicator in highs", "Playful intimacy"],
+    growth: ["Don’t ignore red flags for vibes", "Let depth follow the spark"],
+    matchTips: [
+      "Pick people who can laugh *and* be real.",
+      "Avoid emotional flatlines.",
+      "Let Rivva steer you toward stable fun."
     ],
+    voice: "Your spark is rare. Rivva makes sure it lands in the right hands."
   },
-  {
-    key: "spark",
-    title: "Spark Chaser",
-    subtitle: "energy + excitement led",
+  adventurous: {
+    title: "The Voltage Seeker",
+    oneLiner: "You want passion, motion, and moments that feel alive.",
     description:
-      "You fall for presence, attraction, and momentum. You want a relationship that feels alive, playful, and emotionally electric.",
-    color: "from-fuchsia-400 to-purple-300",
-    tips: [
-      "You thrive with people who match your energy.",
-      "You need chemistry that stays fun.",
-      "You still want emotional safety — even when it’s exciting.",
+      "You’re built for excitement and bold love. You need someone who’s open to new experiences and not afraid of intensity.",
+    strengths: ["Fearless chemistry", "Bold in attraction", "Creates unforgettable moments"],
+    growth: ["Watch for chaos disguised as passion", "Choose emotional maturity too"],
+    matchTips: [
+      "Best matches are grounded but open-minded.",
+      "Avoid people addicted to drama.",
+      "Pick partners who build thrills *with* trust."
     ],
+    voice: "You’re not too much. You just need someone who can match your pace."
   },
-];
+  grounded: {
+    title: "The Steady Realist",
+    oneLiner: "You trust consistency, effort, and real alignment.",
+    description:
+      "You move with intention. You want loyalty, emotional safety, and someone who shows up — not just talks.",
+    strengths: ["Reliable lover", "Clear boundaries", "Builds long-term love"],
+    growth: ["Let people surprise you", "Don’t confuse slow with safe"],
+    matchTips: [
+      "You pair best with emotionally open people.",
+      "Avoid flaky charmers.",
+      "Rivva will filter for effort + alignment."
+    ],
+    voice: "Your standards are healthy. Rivva helps you find people who meet them."
+  },
+};
 
-function getBand(score: number): ResultBand {
-  // max score with current quiz = 12
-  if (score >= 9) return BANDS[0];       // Deep Connector
-  if (score >= 5) return BANDS[1];       // Balanced Builder
-  return BANDS[2];                      // Spark Chaser
-}
-
-export default function QuizResultsPage() {
+export default function ResultsPage() {
   const router = useRouter();
-
-  const [score, setScore] = useState<number | null>(null);
-  const [answers, setAnswers] = useState<Answers | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
+  const [profileKey, setProfileKey] = useState<keyof Traits | null>(null);
+  const [totals, setTotals] = useState<Traits | null>(null);
 
   useEffect(() => {
-    try {
-      const s = sessionStorage.getItem("rivva_quiz_score");
-      const a = sessionStorage.getItem("rivva_quiz_answers");
+    const profile = sessionStorage.getItem("rivva_quiz_profile") as keyof Traits | null;
+    const totalsRaw = sessionStorage.getItem("rivva_quiz_totals");
 
-      if (!s || !a) {
-        router.replace("/quiz");
-        return;
-      }
-
-      setScore(Number(s));
-      setAnswers(JSON.parse(a));
-    } catch (e) {
-      console.error(e);
-      router.replace("/quiz");
-    } finally {
-      setLoading(false);
+    if (!profile || !totalsRaw) {
+      router.push("/quiz");
+      return;
     }
+
+    setProfileKey(profile);
+    setTotals(JSON.parse(totalsRaw));
   }, [router]);
 
-  const band = useMemo(() => {
-    if (score == null) return null;
-    return getBand(score);
-  }, [score]);
+  const profile = useMemo(() => {
+    if (!profileKey) return null;
+    return PROFILES[profileKey];
+  }, [profileKey]);
 
-  function handleRetake() {
-    sessionStorage.removeItem("rivva_quiz_score");
-    sessionStorage.removeItem("rivva_quiz_answers");
-    router.push("/quiz");
-  }
-
-  async function handleShare() {
-    if (!band || score == null) return;
-
-    const text = `I got "${band.title}" on the Rivva Lumi quiz. My vibe score: ${score}/12.`;
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1400);
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  if (loading || !band || score == null) {
-    return (
-      <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center justify-center px-6">
-        <TypingBubble label="Lumi is finalizing your results…" />
-      </main>
-    );
-  }
+  if (!profile || !totals) return null;
 
   return (
     <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center px-6 py-16">
-      {/* Orb */}
-      <div className="mb-8">
+      <div className="mb-10">
         <LumiOrb />
       </div>
 
-      {/* Results Card */}
-      <section className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-3xl p-8 shadow-xl">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-white/70 text-sm mb-2">Your Lumi Result</p>
-            <h1 className="text-3xl md:text-4xl font-bold">
-              {band.title}
-            </h1>
-            <p className="text-white/70 mt-2">{band.subtitle}</p>
-          </div>
+      <div className="w-full max-w-3xl bg-white/5 border border-white/10 rounded-3xl p-8 md:p-10 shadow-xl">
+        <p className="text-sm text-white/60 mb-2">Your Lumi Profile</p>
+        <h1 className="text-3xl md:text-4xl font-bold mb-2">{profile.title}</h1>
+        <p className="text-lg text-white/80 mb-6">{profile.oneLiner}</p>
 
-          <div className="text-right">
-            <p className="text-xs text-white/60 mb-1">Vibe Score</p>
-            <div
-              className={`inline-flex items-center justify-center px-4 py-2 rounded-2xl font-semibold bg-gradient-to-r ${band.color} text-black`}
-            >
-              {score}/12
-            </div>
-          </div>
+        <div className="bg-white/5 rounded-2xl p-5 border border-white/10 mb-6">
+          <p className="text-white/80 leading-relaxed">{profile.description}</p>
         </div>
 
-        <p className="text-white/80 leading-relaxed mt-6">
-          {band.description}
-        </p>
-
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {band.tips.map((tip, i) => (
-            <div
-              key={i}
-              className="rounded-2xl bg-white/5 border border-white/10 p-4 text-sm text-white/80"
-            >
-              {tip}
+        {/* Trait bars */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          {(
+            Object.entries(totals) as [keyof Traits, number][]
+          ).map(([k, v]) => (
+            <div key={k} className="bg-white/5 rounded-2xl p-4 border border-white/10">
+              <div className="flex justify-between text-sm text-white/70 mb-2">
+                <span className="capitalize">{k}</span>
+                <span>{v}</span>
+              </div>
+              <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-purple-500 to-cyan-400"
+                  style={{ width: `${Math.min(100, v * 12)}%` }}
+                />
+              </div>
             </div>
           ))}
         </div>
 
-        {/* Lumi Voice Reaction */}
-        <div className="mt-8 flex items-center gap-3">
-          <LumiVoiceButton
-            text={`Okay… I’m getting ${band.title} energy. That means your strongest pull is ${band.subtitle}.`}
-          />
-          <p className="text-xs text-white/50">
-            Tap for Lumi’s take
-          </p>
-        </div>
-      </section>
-
-      {/* Actions */}
-      <section className="w-full max-w-2xl mt-8 flex flex-col sm:flex-row gap-3">
-        <button
-          onClick={handleRetake}
-          className="flex-1 px-6 py-3 rounded-2xl font-semibold bg-white/5 border border-white/10 hover:bg-white/10 transition"
-        >
-          Retake Quiz
-        </button>
-
-        <button
-          onClick={handleShare}
-          className="flex-1 px-6 py-3 rounded-2xl font-semibold bg-gradient-to-r from-purple-500 to-cyan-400 text-black hover:opacity-90 transition"
-        >
-          {copied ? "Copied!" : "Share Result"}
-        </button>
-
-        <Link
-          href="/"
-          className="flex-1 px-6 py-3 rounded-2xl font-semibold bg-white text-black text-center hover:opacity-90 transition"
-        >
-          Join Waitlist
-        </Link>
-      </section>
-
-      {/* Optional answer recap */}
-      {answers && (
-        <section className="w-full max-w-2xl mt-10">
-          <h2 className="text-lg font-semibold mb-3 text-white/90">
-            Your Answers
-          </h2>
-          <div className="space-y-3">
-            {Object.entries(answers).map(([qid, opt]) => (
-              <div
-                key={qid}
-                className="rounded-2xl bg-white/5 border border-white/10 p-4"
-              >
-                <p className="text-xs text-white/50 mb-1">
-                  {qid.toUpperCase()}
-                </p>
-                <p className="text-white/85">{opt.text}</p>
-              </div>
-            ))}
+        {/* Strengths / Growth */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
+            <h2 className="font-semibold text-lg mb-3">Your strengths</h2>
+            <ul className="list-disc list-inside space-y-1 text-white/80">
+              {profile.strengths.map((s, i) => (
+                <li key={i}>{s}</li>
+              ))}
+            </ul>
           </div>
-        </section>
-      )}
+
+          <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
+            <h2 className="font-semibold text-lg mb-3">Your growth edge</h2>
+            <ul className="list-disc list-inside space-y-1 text-white/80">
+              {profile.growth.map((g, i) => (
+                <li key={i}>{g}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Match Tips */}
+        <div className="bg-white/5 rounded-2xl p-5 border border-white/10 mb-8">
+          <h2 className="font-semibold text-lg mb-3">How Rivva matches for you</h2>
+          <ul className="space-y-2 text-white/80">
+            {profile.matchTips.map((m, i) => (
+              <li key={i}>• {m}</li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Lumi voice + CTA */}
+        <div className="flex items-center gap-3 mb-6">
+          <LumiVoiceButton textToSpeak={profile.voice} />
+          <span className="text-sm text-white/70">Hear Lumi explain your result</span>
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-3">
+          <button
+            onClick={() => router.push("/")}
+            className="flex-1 px-6 py-4 rounded-2xl bg-white text-black font-semibold hover:opacity-90 transition"
+          >
+            Back to Home
+          </button>
+
+          <button
+            onClick={() => router.push("/#waitlist")}
+            className="flex-1 px-6 py-4 rounded-2xl bg-gradient-to-r from-purple-500 to-cyan-400 text-black font-semibold hover:opacity-90 transition"
+          >
+            Join Rivva Early Access
+          </button>
+        </div>
+      </div>
     </main>
   );
 }

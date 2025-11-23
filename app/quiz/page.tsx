@@ -6,7 +6,19 @@ import LumiOrb from "@/components/LumiOrb";
 import TypingBubble from "@/components/TypingBubble";
 import LumiVoiceButton from "@/components/LumiVoiceButton";
 
-type Option = { id: string; text: string; score: number };
+type Traits = {
+  emotional: number;
+  playful: number;
+  adventurous: number;
+  grounded: number;
+};
+
+type Option = {
+  id: string;
+  text: string;
+  traits: Partial<Traits>;
+};
+
 type Question = {
   id: string;
   prompt: string;
@@ -16,76 +28,147 @@ type Question = {
 const QUESTIONS: Question[] = [
   {
     id: "q1",
-    prompt: "When you meet someone new, what matters most first?",
+    prompt: "When you meet someone new, what pulls you in first?",
     options: [
-      { id: "a", text: "Their energy / vibe", score: 3 },
-      { id: "b", text: "Shared values", score: 2 },
-      { id: "c", text: "Physical attraction", score: 1 },
-      { id: "d", text: "Conversation flow", score: 3 },
+      { id: "a", text: "Their energy / vibe", traits: { playful: 2, emotional: 1 } },
+      { id: "b", text: "How they think + speak", traits: { grounded: 2, emotional: 1 } },
+      { id: "c", text: "Physical attraction", traits: { adventurous: 1, playful: 1 } },
+      { id: "d", text: "The conversation flow", traits: { emotional: 2, grounded: 1 } },
     ],
   },
   {
     id: "q2",
     prompt: "Your ideal first date is…",
     options: [
-      { id: "a", text: "Something thoughtful + personal", score: 3 },
-      { id: "b", text: "Fun + spontaneous", score: 2 },
-      { id: "c", text: "A chill low-pressure hang", score: 2 },
-      { id: "d", text: "A deep talk over coffee", score: 3 },
+      { id: "a", text: "Something thoughtful + personal", traits: { emotional: 2, grounded: 1 } },
+      { id: "b", text: "Fun + spontaneous", traits: { playful: 2, adventurous: 1 } },
+      { id: "c", text: "Low-pressure chill hang", traits: { grounded: 2 } },
+      { id: "d", text: "Deep talk over coffee", traits: { emotional: 2, grounded: 1 } },
     ],
   },
   {
     id: "q3",
-    prompt: "When conflict shows up, your instinct is to…",
+    prompt: "If you like someone, you usually…",
     options: [
-      { id: "a", text: "Talk it out ASAP", score: 3 },
-      { id: "b", text: "Take space then return calm", score: 2 },
-      { id: "c", text: "Avoid it if possible", score: 0 },
-      { id: "d", text: "Use humor to soften it", score: 1 },
+      { id: "a", text: "Show it openly", traits: { emotional: 2 } },
+      { id: "b", text: "Flirt/play around", traits: { playful: 2 } },
+      { id: "c", text: "Wait and watch", traits: { grounded: 2 } },
+      { id: "d", text: "Make a bold move", traits: { adventurous: 2, playful: 1 } },
     ],
   },
   {
     id: "q4",
+    prompt: "When conflict pops up, your instinct is to…",
+    options: [
+      { id: "a", text: "Talk it out asap", traits: { emotional: 2, grounded: 1 } },
+      { id: "b", text: "Take space then return calm", traits: { grounded: 2 } },
+      { id: "c", text: "Avoid it if possible", traits: { playful: 1 } },
+      { id: "d", text: "Use humor to soften it", traits: { playful: 2 } },
+    ],
+  },
+  {
+    id: "q5",
     prompt: "A relationship feels right when…",
     options: [
-      { id: "a", text: "You feel emotionally safe", score: 3 },
-      { id: "b", text: "You grow together", score: 3 },
-      { id: "c", text: "It’s exciting + passionate", score: 2 },
-      { id: "d", text: "You feel understood", score: 3 },
+      { id: "a", text: "You feel emotionally safe", traits: { emotional: 2 } },
+      { id: "b", text: "You grow together", traits: { grounded: 1, emotional: 1 } },
+      { id: "c", text: "It’s exciting + passionate", traits: { adventurous: 2, playful: 1 } },
+      { id: "d", text: "You feel deeply understood", traits: { emotional: 2, grounded: 1 } },
+    ],
+  },
+  {
+    id: "q6",
+    prompt: "On a weekend with your person, you’d rather…",
+    options: [
+      { id: "a", text: "Stay in and connect", traits: { emotional: 2, grounded: 1 } },
+      { id: "b", text: "Go somewhere new", traits: { adventurous: 2 } },
+      { id: "c", text: "Do something light + fun", traits: { playful: 2 } },
+      { id: "d", text: "Handle some life stuff together", traits: { grounded: 2 } },
+    ],
+  },
+  {
+    id: "q7",
+    prompt: "What drains you fastest in dating?",
+    options: [
+      { id: "a", text: "Inconsistency", traits: { grounded: 2 } },
+      { id: "b", text: "Dry conversations", traits: { playful: 2 } },
+      { id: "c", text: "Emotional coldness", traits: { emotional: 2 } },
+      { id: "d", text: "Too much routine", traits: { adventurous: 2 } },
+    ],
+  },
+  {
+    id: "q8",
+    prompt: "Your love language vibe is closest to…",
+    options: [
+      { id: "a", text: "Words + emotional presence", traits: { emotional: 2 } },
+      { id: "b", text: "Play + laughter", traits: { playful: 2 } },
+      { id: "c", text: "Acts of care + reliability", traits: { grounded: 2 } },
+      { id: "d", text: "Adventure + shared experiences", traits: { adventurous: 2 } },
+    ],
+  },
+  {
+    id: "q9",
+    prompt: "When someone likes you, you want them to…",
+    options: [
+      { id: "a", text: "Be clear about it", traits: { grounded: 2 } },
+      { id: "b", text: "Show effort", traits: { grounded: 1, emotional: 1 } },
+      { id: "c", text: "Keep it exciting", traits: { adventurous: 2 } },
+      { id: "d", text: "Make you feel seen", traits: { emotional: 2 } },
+    ],
+  },
+  {
+    id: "q10",
+    prompt: "Your best relationships usually start with…",
+    options: [
+      { id: "a", text: "A strong emotional click", traits: { emotional: 2 } },
+      { id: "b", text: "A playful spark", traits: { playful: 2 } },
+      { id: "c", text: "A steady build", traits: { grounded: 2 } },
+      { id: "d", text: "A wild unexpected moment", traits: { adventurous: 2, playful: 1 } },
     ],
   },
 ];
+
+const EMPTY_TRAITS: Traits = {
+  emotional: 0,
+  playful: 0,
+  adventurous: 0,
+  grounded: 0,
+};
 
 export default function QuizPage() {
   const router = useRouter();
   const totalQuestions = QUESTIONS.length;
 
-  // NEW: intro gate
   const [started, setStarted] = useState(false);
-
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, Option>>({});
   const [isThinking, setIsThinking] = useState(false);
 
   const current = QUESTIONS[index];
 
-  const progress = useMemo(() => {
-    return Math.round((index / totalQuestions) * 100);
-  }, [index, totalQuestions]);
+  const progress = useMemo(
+    () => Math.round((index / totalQuestions) * 100),
+    [index, totalQuestions]
+  );
 
   function startQuiz() {
     setStarted(true);
   }
 
+  function addTraits(base: Traits, inc: Partial<Traits>) {
+    return {
+      emotional: base.emotional + (inc.emotional ?? 0),
+      playful: base.playful + (inc.playful ?? 0),
+      adventurous: base.adventurous + (inc.adventurous ?? 0),
+      grounded: base.grounded + (inc.grounded ?? 0),
+    };
+  }
+
   function pickOption(opt: Option) {
     if (isThinking) return;
 
-    const nextAnswers = {
-      ...answers,
-      [current.id]: opt,
-    };
+    const nextAnswers = { ...answers, [current.id]: opt };
     setAnswers(nextAnswers);
-
     setIsThinking(true);
 
     setTimeout(() => {
@@ -94,23 +177,24 @@ export default function QuizPage() {
       if (index + 1 < totalQuestions) {
         setIndex(index + 1);
       } else {
-        const score = Object.values(nextAnswers).reduce(
-          (sum, a) => sum + a.score,
-          0
-        );
+        // compute trait totals
+        const totals = Object.values(nextAnswers).reduce((acc, a) => {
+          return addTraits(acc, a.traits);
+        }, EMPTY_TRAITS);
 
-        sessionStorage.setItem("rivva_quiz_score", String(score));
-        sessionStorage.setItem(
-          "rivva_quiz_answers",
-          JSON.stringify(nextAnswers)
-        );
+        // choose strongest trait as profile
+        const topTrait = (Object.entries(totals) as [keyof Traits, number][])
+          .sort((a, b) => b[1] - a[1])[0][0];
+
+        sessionStorage.setItem("rivva_quiz_totals", JSON.stringify(totals));
+        sessionStorage.setItem("rivva_quiz_profile", topTrait);
+        sessionStorage.setItem("rivva_quiz_answers", JSON.stringify(nextAnswers));
 
         router.push("/quiz/results");
       }
     }, 900);
   }
 
-  // ✅ INTRO SCREEN
   if (!started) {
     return (
       <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center justify-center px-6 py-16 text-center">
@@ -127,16 +211,9 @@ export default function QuizPage() {
           connect, communicate, and what feels “right” for you.
         </p>
 
-        <p className="mt-3 text-white/60 max-w-xl text-sm leading-relaxed">
-          This takes under a minute. There are no wrong answers — just your
-          energy.
-        </p>
-
         <div className="mt-6 flex items-center justify-center gap-3">
           <LumiVoiceButton textToSpeak="I’m Lumi. Answer honestly, and I’ll map your vibe in seconds." />
-          <span className="text-sm text-white/70">
-            Hear Lumi explain it
-          </span>
+          <span className="text-sm text-white/70">Hear Lumi explain it</span>
         </div>
 
         <button
@@ -145,15 +222,10 @@ export default function QuizPage() {
         >
           Start Quiz
         </button>
-
-        <p className="mt-6 text-xs text-white/50">
-          Your answers stay on this device for now.
-        </p>
       </main>
     );
   }
 
-  // ✅ QUIZ SCREEN (unchanged flow)
   return (
     <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center px-6 py-16">
       <div className="mb-8">
