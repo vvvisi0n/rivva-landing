@@ -2,51 +2,61 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-type LumiVoiceButtonProps = {
-  text: string;
-  className?: string;
-};
-
 export default function LumiVoiceButton({
   text,
   className = "",
-}: LumiVoiceButtonProps) {
+  disabled = false,
+}: {
+  text: string;
+  className?: string;
+  disabled?: boolean;
+}) {
   const [supported, setSupported] = useState(false);
   const [speaking, setSpeaking] = useState(false);
 
+  // check support
   useEffect(() => {
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      setSupported(true);
-    }
+    setSupported(
+      typeof window !== "undefined" &&
+        "speechSynthesis" in window &&
+        typeof SpeechSynthesisUtterance !== "undefined"
+    );
   }, []);
 
-  const utterance = useMemo(() => {
-    if (!supported) return null;
-    const u = new SpeechSynthesisUtterance(text);
-    u.rate = 1;
-    u.pitch = 1.05;
-    u.volume = 1;
-    u.onstart = () => setSpeaking(true);
-    u.onend = () => setSpeaking(false);
-    u.onerror = () => setSpeaking(false);
-    return u;
+  // stop speaking if question changes
+  useEffect(() => {
+    if (!supported) return;
+    window.speechSynthesis.cancel();
+    setSpeaking(false);
   }, [text, supported]);
 
+  const canSpeak = useMemo(
+    () => supported && !disabled && text?.trim().length > 0,
+    [supported, disabled, text]
+  );
+
   function toggleSpeak() {
-    if (!supported || !utterance) return;
+    if (!canSpeak) return;
 
     const synth = window.speechSynthesis;
 
-    // If already speaking, stop
+    // if currently speaking, stop
     if (speaking) {
       synth.cancel();
       setSpeaking(false);
       return;
     }
 
-    // Cancel any queued speech then speak fresh
+    // otherwise speak text
     synth.cancel();
-    synth.speak(utterance);
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 1.0;
+    utter.pitch = 1.05;
+    utter.onend = () => setSpeaking(false);
+    utter.onerror = () => setSpeaking(false);
+
+    setSpeaking(true);
+    synth.speak(utter);
   }
 
   if (!supported) return null;
@@ -55,11 +65,20 @@ export default function LumiVoiceButton({
     <button
       type="button"
       onClick={toggleSpeak}
-      className={`px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-semibold hover:bg-white/10 transition ${className}`}
-      aria-pressed={speaking}
+      disabled={!canSpeak}
       aria-label={speaking ? "Stop Lumi voice" : "Play Lumi voice"}
+      className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm ${
+        !canSpeak ? "opacity-50 cursor-not-allowed" : ""
+      } ${className}`}
     >
-      {speaking ? "Stop Lumi Voice" : "Lumi Voice"}
+      <span className="text-white/90">
+        {speaking ? "Stop Voice" : "Lumi Voice"}
+      </span>
+      <span
+        className={`w-2 h-2 rounded-full ${
+          speaking ? "bg-cyan-300 animate-pulse" : "bg-white/50"
+        }`}
+      />
     </button>
   );
 }
