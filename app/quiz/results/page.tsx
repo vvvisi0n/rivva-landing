@@ -414,6 +414,13 @@ export default function QuizResultsPage() {
         {/* CTA Buttons */}
         <div className="mt-10 flex flex-col sm:flex-row gap-3">
           <button
+            onClick={() => router.push("/onboarding")}
+            className="flex-1 px-6 py-3 rounded-xl bg-purple-600 font-semibold hover:bg-purple-700 transition"
+          >
+            Continue with Lumi
+          </button>
+
+          <button
             onClick={() => router.push("/quiz")}
             className="flex-1 px-6 py-3 rounded-xl bg-white text-black font-semibold hover:opacity-90 transition"
           >
