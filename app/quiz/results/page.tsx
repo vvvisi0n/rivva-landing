@@ -2,226 +2,223 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import LumiOrb from "@/components/LumiOrb";
+import TypingBubble from "@/components/TypingBubble";
 import LumiVoiceButton from "@/components/LumiVoiceButton";
 
-type StoredOption = { id: string; text: string; score: number };
-type StoredAnswers = Record<string, StoredOption>;
+type Option = { id: string; text: string; score: number };
+type AnswersMap = Record<string, Option>;
 
-type Archetype = {
-  key: string;
+type Tier = {
+  key: "low" | "mid" | "high";
   title: string;
-  vibe: string;
-  strengths: string[];
-  growth: string[];
-  lumiTip: string;
+  subtitle: string;
+  lumiSummary: string;
+  traits: string[];
+  colorClass: string;
 };
 
-function getArchetype(score: number): Archetype {
-  if (score <= 4) {
-    return {
-      key: "explorer",
-      title: "The Explorer",
-      vibe:
-        "You’re still mapping your relationship rhythm. You value freedom, curiosity, and low-pressure connection.",
-      strengths: [
-        "Open-minded and adaptive",
-        "Good at reading new situations",
-        "Doesn’t rush attachment",
-      ],
-      growth: [
-        "Let people know what you need early",
-        "Don’t disappear when it gets deep",
-      ],
-      lumiTip:
-        "Lumi will help you spot who matches your pace — and who’s too intense too soon.",
-    };
-  }
-
-  if (score <= 8) {
-    return {
-      key: "connector",
-      title: "The Balanced Connector",
-      vibe:
-        "You want chemistry *and* stability. Your best relationships feel easy, honest, and emotionally steady.",
-      strengths: [
-        "Strong emotional awareness",
-        "Values healthy communication",
-        "Knows what feels right",
-      ],
-      growth: [
-        "Don’t overthink early signals",
-        "Trust consistent actions over sparks",
-      ],
-      lumiTip:
-        "Lumi will filter for people who communicate clearly *and* bring real joy.",
-    };
-  }
-
-  return {
-    key: "resonator",
-    title: "The Deep Resonator",
-    vibe:
-      "You’re wired for real intimacy. You want emotional safety, growth, and a bond that feels rare.",
-    strengths: [
-      "High emotional depth",
-      "Naturally loyal",
-      "Creates safe, real connection",
+const TIERS: Tier[] = [
+  {
+    key: "low",
+    title: "Explorer Energy",
+    subtitle: "You connect through curiosity and momentum.",
+    lumiSummary:
+      "You’re still feeling out what really clicks for you — and that’s a good thing. Your vibe is open, experimental, and driven by chemistry. Lumi would help you slow the noise, notice patterns, and find people who feel exciting *and* safe.",
+    traits: [
+      "You’re led by spark + spontaneity",
+      "You value fun and freedom early on",
+      "You may need time to trust emotionally",
     ],
-    growth: [
-      "Be patient with slow builders",
-      "Let love be simple sometimes",
+    colorClass: "from-fuchsia-500 to-cyan-400",
+  },
+  {
+    key: "mid",
+    title: "Balanced Connector",
+    subtitle: "You want both chemistry and clarity.",
+    lumiSummary:
+      "You’re a blend of heart and logic. You want attraction, but not at the cost of alignment. You’re selective, but not closed-off. Lumi would match you with people who feel easy to talk to, emotionally steady, and genuinely compatible.",
+    traits: [
+      "You seek emotional comfort + attraction",
+      "You like steady pacing",
+      "You want conversations that flow naturally",
     ],
-    lumiTip:
-      "Lumi will steer you toward emotionally mature matches — not just exciting ones.",
-  };
+    colorClass: "from-purple-500 to-sky-400",
+  },
+  {
+    key: "high",
+    title: "Deep Bond Builder",
+    subtitle: "You connect through emotional safety and meaning.",
+    lumiSummary:
+      "Your heart is tuned for real partnership. You care about emotional security, communication, and growing together. You don’t want random — you want *right*. Lumi would help you find people who are consistent, emotionally aware, and able to build something real.",
+    traits: [
+      "You prioritize emotional safety",
+      "You want shared values",
+      "You’re built for long-term love",
+    ],
+    colorClass: "from-indigo-500 to-purple-400",
+  },
+];
+
+function getTier(score: number): Tier {
+  // Max possible score = 12 (4 questions * 3)
+  if (score <= 5) return TIERS[0];
+  if (score <= 9) return TIERS[1];
+  return TIERS[2];
 }
 
-export default function ResultsPage() {
+export default function QuizResultsPage() {
+  const router = useRouter();
+
   const [score, setScore] = useState<number | null>(null);
-  const [answers, setAnswers] = useState<StoredAnswers | null>(null);
+  const [answers, setAnswers] = useState<AnswersMap | null>(null);
+  const [thinking, setThinking] = useState(true);
 
   useEffect(() => {
+    // Load from sessionStorage
     const rawScore = sessionStorage.getItem("rivva_quiz_score");
     const rawAnswers = sessionStorage.getItem("rivva_quiz_answers");
 
     if (!rawScore || !rawAnswers) {
-      setScore(0);
-      setAnswers({});
+      setThinking(false);
+      setScore(null);
+      setAnswers(null);
       return;
     }
 
-    setScore(Number(rawScore));
     try {
-      setAnswers(JSON.parse(rawAnswers));
-    } catch {
-      setAnswers({});
+      const parsedScore = Number(rawScore);
+      const parsedAnswers = JSON.parse(rawAnswers) as AnswersMap;
+
+      setScore(parsedScore);
+      setAnswers(parsedAnswers);
+    } catch (e) {
+      console.error(e);
+      setScore(null);
+      setAnswers(null);
+    } finally {
+      // little Lumi pause
+      const t = setTimeout(() => setThinking(false), 700);
+      return () => clearTimeout(t);
     }
   }, []);
 
-  const archetype = useMemo(
-    () => getArchetype(score ?? 0),
-    [score]
-  );
-
-  const percent = useMemo(() => {
-    const max = 12;
-    return Math.min(100, Math.round(((score ?? 0) / max) * 100));
+  const tier = useMemo(() => {
+    if (score == null) return null;
+    return getTier(score);
   }, [score]);
 
-  const readableRecap = useMemo(() => {
-    if (!answers) return [];
-    return Object.entries(answers).map(([qid, opt], i) => ({
-      number: i + 1,
-      qid,
-      text: opt.text,
-      score: opt.score,
-    }));
-  }, [answers]);
+  function retake() {
+    sessionStorage.removeItem("rivva_quiz_score");
+    sessionStorage.removeItem("rivva_quiz_answers");
+    router.push("/quiz");
+  }
 
-  const summaryToSpeak = `Your Rivva vibe is ${archetype.title}. ${archetype.vibe} ${archetype.lumiTip}`;
+  const voiceText = tier
+    ? `Here’s your Lumi read. ${tier.title}. ${tier.subtitle} ${tier.lumiSummary}`
+    : "Your quiz results aren’t available. Try retaking the quiz.";
 
   return (
     <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center px-6 py-16">
-      <div className="mb-8">
+      <div className="mb-6">
         <LumiOrb />
       </div>
 
-      <div className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-3xl p-8 shadow-xl">
-        <p className="text-sm text-white/60 mb-2">Your Compatibility Read</p>
-
-        <h1 className="text-3xl md:text-4xl font-bold mb-2">
-          {archetype.title}
-        </h1>
-
-        <p className="text-white/80 leading-relaxed mb-4">
-          {archetype.vibe}
-        </p>
-
-        <div className="mb-6">
-          <LumiVoiceButton
-            text={summaryToSpeak}
-            preface="Here’s your compatibility read."
+      <div className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-3xl p-8 shadow-xl text-center">
+        {thinking && (
+          <TypingBubble
+            className="mb-6"
+            label="Lumi is analyzing your answers…"
           />
-        </div>
-
-        <div className="mb-8">
-          <div className="flex items-center justify-between text-xs text-white/60 mb-2">
-            <span>Exploratory</span>
-            <span>Balanced</span>
-            <span>Deep</span>
-          </div>
-          <div className="h-3 w-full bg-white/10 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-purple-500 via-fuchsia-400 to-cyan-300 transition-all"
-              style={{ width: `${percent}%` }}
-            />
-          </div>
-          <p className="mt-2 text-sm text-white/60">
-            Score: {score ?? 0} / 12
-          </p>
-        </div>
-
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold mb-2">Your strengths</h2>
-          <ul className="list-disc list-inside text-white/80 space-y-1">
-            {archetype.strengths.map((s) => (
-              <li key={s}>{s}</li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold mb-2">Watch-outs</h2>
-          <ul className="list-disc list-inside text-white/80 space-y-1">
-            {archetype.growth.map((g) => (
-              <li key={g}>{g}</li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="rounded-2xl bg-white/5 border border-white/10 p-5 mb-8">
-          <p className="text-white/90 font-medium">Lumi’s note</p>
-          <p className="text-white/70 mt-1">{archetype.lumiTip}</p>
-        </div>
-
-        {readableRecap.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold mb-3">Your answers</h2>
-            <div className="space-y-2">
-              {readableRecap.map((r) => (
-                <div
-                  key={r.qid}
-                  className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/80 text-sm"
-                >
-                  <span className="text-white/50 mr-2">Q{r.number}:</span>
-                  {r.text}
-                </div>
-              ))}
-            </div>
-          </div>
         )}
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Link
-            href="/"
-            className="flex-1 inline-flex items-center justify-center px-6 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition"
-          >
-            Back to Rivva
-          </Link>
+        {!thinking && !tier && (
+          <>
+            <h1 className="text-3xl font-bold mb-3">No Results Found</h1>
+            <p className="text-white/70 mb-8">
+              Looks like your quiz data isn’t here (maybe you refreshed).  
+              No worries — just retake it and Lumi will read your vibe again.
+            </p>
 
-          <Link
-            href="/#waitlist"
-            className="flex-1 inline-flex items-center justify-center px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-cyan-400 text-black font-semibold hover:opacity-90 transition"
-          >
-            Join Early Access
-          </Link>
-        </div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={retake}
+                className="px-6 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition"
+              >
+                Retake Quiz
+              </button>
+              <Link
+                href="/"
+                className="px-6 py-3 rounded-xl bg-white/10 border border-white/15 font-semibold hover:bg-white/15 transition"
+              >
+                Back Home
+              </Link>
+            </div>
+          </>
+        )}
+
+        {!thinking && tier && score != null && (
+          <>
+            {/* Score badge */}
+            <div
+              className={`inline-flex items-center justify-center px-4 py-1 rounded-full text-sm font-semibold bg-gradient-to-r ${tier.colorClass} text-black mb-4`}
+            >
+              Your score: {score}/12
+            </div>
+
+            {/* Title */}
+            <h1 className="text-3xl md:text-4xl font-extrabold mb-2">
+              {tier.title}
+            </h1>
+            <p className="text-white/75 mb-6">{tier.subtitle}</p>
+
+            {/* Lumi summary */}
+            <div className="text-left bg-white/5 border border-white/10 rounded-2xl p-6 mb-6">
+              <h2 className="text-lg font-semibold mb-2">Lumi’s Read</h2>
+              <p className="text-white/80 leading-relaxed">
+                {tier.lumiSummary}
+              </p>
+            </div>
+
+            {/* Traits */}
+            <div className="text-left mb-8">
+              <h3 className="text-lg font-semibold mb-3">
+                What this says about your vibe
+              </h3>
+              <ul className="space-y-2 text-white/80">
+                {tier.traits.map((t) => (
+                  <li key={t} className="flex gap-2">
+                    <span className="text-purple-300">•</span>
+                    <span>{t}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Voice button */}
+            <div className="mb-8 flex justify-center">
+              <LumiVoiceButton text={voiceText} />
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={retake}
+                className="px-6 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition"
+              >
+                Retake Quiz
+              </button>
+              <Link
+                href="/"
+                className="px-6 py-3 rounded-xl bg-white/10 border border-white/15 font-semibold hover:bg-white/15 transition"
+              >
+                Back Home
+              </Link>
+            </div>
+          </>
+        )}
       </div>
-
-      <p className="text-xs text-white/50 mt-6">
-        This is a quick vibe read — Lumi gets smarter with real interactions.
-      </p>
     </main>
   );
 }
