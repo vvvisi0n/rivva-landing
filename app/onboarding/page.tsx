@@ -93,7 +93,7 @@ export default function OnboardingPage() {
       completedAt: new Date().toISOString(),
     };
     sessionStorage.setItem("rivva_onboarding", JSON.stringify(payload));
-    router.push("/quiz");
+    router.push("/onboarding/summary");
   }
 
   const voiceText = useMemo(() => {
