@@ -51,101 +51,18 @@ const QUESTIONS: Question[] = [
       { id: "a", text: "You feel emotionally safe", score: 3 },
       { id: "b", text: "You grow together", score: 3 },
       { id: "c", text: "It’s exciting + passionate", score: 2 },
-      { id: "d", text: "You feel deeply understood", score: 3 },
-    ],
-  },
-  {
-    id: "q5",
-    prompt: "You’re most attracted to people who…",
-    options: [
-      { id: "a", text: "Feel calm and grounded", score: 3 },
-      { id: "b", text: "Challenge you in a good way", score: 2 },
-      { id: "c", text: "Bring excitement and spontaneity", score: 1 },
-      { id: "d", text: "Make you feel seen instantly", score: 3 },
-    ],
-  },
-  {
-    id: "q6",
-    prompt: "When someone pulls back emotionally, you usually…",
-    options: [
-      { id: "a", text: "Check in directly", score: 3 },
-      { id: "b", text: "Wait and observe", score: 2 },
-      { id: "c", text: "Assume they’re not interested", score: 1 },
-      { id: "d", text: "Pull back too", score: 0 },
-    ],
-  },
-  {
-    id: "q7",
-    prompt: "What do you value most long-term?",
-    options: [
-      { id: "a", text: "Consistency and loyalty", score: 3 },
-      { id: "b", text: "Growth and shared goals", score: 3 },
-      { id: "c", text: "Adventure and fun", score: 2 },
-      { id: "d", text: "Peace and emotional stability", score: 3 },
-    ],
-  },
-  {
-    id: "q8",
-    prompt: "If the connection is great but timing is messy, you…",
-    options: [
-      { id: "a", text: "Try to make it work anyway", score: 2 },
-      { id: "b", text: "Step back and protect your peace", score: 3 },
-      { id: "c", text: "Keep it casual", score: 1 },
-      { id: "d", text: "Let it go if it drains you", score: 3 },
+      { id: "d", text: "You feel understood", score: 3 },
     ],
   },
 ];
 
-const FEEDBACK: Record<string, Record<string, string>> = {
-  q1: {
-    a: "Ooo you read energy fast. That’s a strong emotional radar.",
-    b: "Values-first. You don’t want random.",
-    c: "You notice attraction — normal, just don’t let it lead alone.",
-    d: "You care how it *feels* in convo. That’s a real signal.",
-  },
-  q2: {
-    a: "Thoughtful dates = you like intention. Not bad at all.",
-    b: "Spontaneous? You like chemistry and momentum.",
-    c: "Low pressure = you move best when it’s easy.",
-    d: "Deep talk early? You’re wired for realness.",
-  },
-  q3: {
-    a: "Healthy. You don’t let tension rot.",
-    b: "Space then calm is mature. Respect.",
-    c: "Avoiding conflict can cost you later — I’ll help with that.",
-    d: "Humor helps, just don’t use it to dodge the real talk.",
-  },
-  q4: {
-    a: "Emotional safety is your foundation. Solid.",
-    b: "You’re built for growth. That’s rare.",
-    c: "You want passion — just pair it with stability.",
-    d: "Feeling understood is a big love language for you.",
-  },
-  q5: {
-    a: "Grounded partners keep your nervous system soft. Nice.",
-    b: "You like someone who sharpens you.",
-    c: "You love sparkle — just watch for inconsistency.",
-    d: "Being seen quickly matters to you. I get that.",
-  },
-  q6: {
-    a: "Direct check-ins = secure energy.",
-    b: "Observing first can be wise — as long as you communicate.",
-    c: "You feel shifts deeply. I’ll help you read them clearer.",
-    d: "Matching distance is self-protection. Makes sense.",
-  },
-  q7: {
-    a: "You want something steady and loyal. Love that.",
-    b: "Growth together is elite relationship thinking.",
-    c: "Fun matters to you. Keeps love alive.",
-    d: "Peace is priceless. You’re not into chaos.",
-  },
-  q8: {
-    a: "You fight for connection — but protect your heart too.",
-    b: "Peace-first. That’s self-respect.",
-    c: "Casual works when you don’t want pressure.",
-    d: "You don’t stay where you shrink. Good instinct.",
-  },
-};
+// quick, natural Lumi reactions based on option score
+function lumiReaction(score: number) {
+  if (score >= 3) return "Ooo okay… I see you.";
+  if (score === 2) return "That makes sense. Interesting.";
+  if (score === 1) return "Noted — chemistry counts.";
+  return "Alright… storing that.";
+}
 
 export default function QuizPage() {
   const router = useRouter();
@@ -154,20 +71,30 @@ export default function QuizPage() {
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, Option>>({});
   const [isThinking, setIsThinking] = useState(false);
-  const [lumiLine, setLumiLine] = useState<string | null>(null);
+  const [transitionOut, setTransitionOut] = useState(false);
+  const [reaction, setReaction] = useState<string | null>(null);
+  const [voiceOn, setVoiceOn] = useState(true);
 
   const current = QUESTIONS[index];
-  const selected = answers[current.id];
 
   const progress = useMemo(() => {
     return Math.round((index / totalQuestions) * 100);
   }, [index, totalQuestions]);
 
   function goBack() {
-    if (isThinking) return;
-    if (index === 0) return;
-    setLumiLine(null);
-    setIndex(index - 1);
+    if (isThinking || index === 0) return;
+
+    const prevQuestion = QUESTIONS[index - 1];
+    const nextAnswers = { ...answers };
+    delete nextAnswers[prevQuestion.id];
+
+    setAnswers(nextAnswers);
+    setTransitionOut(true);
+
+    setTimeout(() => {
+      setIndex(index - 1);
+      setTransitionOut(false);
+    }, 220);
   }
 
   function pickOption(opt: Option) {
@@ -179,16 +106,22 @@ export default function QuizPage() {
     };
     setAnswers(nextAnswers);
 
-    setLumiLine(FEEDBACK[current.id]?.[opt.id] ?? "Noted. I’m tracking your vibe.");
+    // Lumi reacts quickly
+    setReaction(lumiReaction(opt.score));
 
+    // show Lumi thinking before next question
     setIsThinking(true);
 
+    // animate card out
+    setTransitionOut(true);
+
     setTimeout(() => {
-      setIsThinking(false);
+      setTransitionOut(false);
 
       if (index + 1 < totalQuestions) {
         setIndex(index + 1);
-        setLumiLine(null);
+        setIsThinking(false);
+        setReaction(null);
       } else {
         const score = Object.values(nextAnswers).reduce(
           (sum, a) => sum + a.score,
@@ -203,90 +136,130 @@ export default function QuizPage() {
 
         router.push("/quiz/results");
       }
-    }, 1100);
+    }, 900);
   }
+
+  const voiceText = useMemo(() => {
+    if (!current) return "";
+    return `Question ${index + 1}. ${current.prompt}`;
+  }, [current, index]);
 
   return (
     <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center px-6 py-16">
+      {/* Orb */}
       <div className="mb-8">
         <LumiOrb />
       </div>
 
-      <div className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-3xl p-8 shadow-xl">
-        <div className="flex items-center justify-between mb-4">
+      {/* Card */}
+      <div
+        className={`w-full max-w-2xl bg-white/5 border border-white/10 rounded-3xl p-8 shadow-xl
+        transition-all duration-300 ease-out
+        ${transitionOut ? "opacity-0 translate-y-3 scale-[0.98]" : "opacity-100 translate-y-0 scale-100"}
+      `}
+      >
+        {/* Top row */}
+        <div className="flex items-center justify-between mb-6">
           <p className="text-sm text-white/70">
             Question {index + 1} of {totalQuestions}
           </p>
-          <p className="text-sm text-white/70">{progress}%</p>
+          <div className="flex items-center gap-3">
+            <p className="text-sm text-white/70">{progress}%</p>
+          </div>
         </div>
 
+        {/* Progress bar */}
         <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden mb-6">
           <div
-            className="h-full bg-gradient-to-r from-purple-500 to-cyan-400 transition-all"
+            className="h-full bg-gradient-to-r from-purple-500 to-cyan-400 transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
         </div>
 
-        <div className="mb-6">
+        {/* Voice toggle + button */}
+        <div className="flex items-center justify-between mb-6">
           <button
             onClick={goBack}
-            disabled={index === 0 || isThinking}
-            className={`text-sm px-3 py-2 rounded-lg border transition ${
-              index === 0 || isThinking
-                ? "border-white/10 bg-white/5 opacity-50 cursor-not-allowed"
-                : "border-white/20 bg-white/5 hover:bg-white/10"
-            }`}
+            disabled={isThinking || index === 0}
+            className={`text-sm px-3 py-1 rounded-lg border transition
+              ${
+                isThinking || index === 0
+                  ? "border-white/10 text-white/40 cursor-not-allowed"
+                  : "border-white/15 text-white/80 hover:bg-white/10"
+              }`}
           >
             ← Back
           </button>
+
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-xs text-white/70 select-none">
+              <input
+                type="checkbox"
+                checked={voiceOn}
+                onChange={() => setVoiceOn(v => !v)}
+                className="accent-purple-400"
+              />
+              Lumi Voice
+            </label>
+
+            {voiceOn && (
+              <LumiVoiceButton text={voiceText} />
+            )}
+          </div>
         </div>
 
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <h1 className="text-2xl md:text-3xl font-semibold leading-snug">
-            {current.prompt}
-          </h1>
+        {/* Prompt */}
+        <h1 className="text-2xl md:text-3xl font-semibold leading-snug mb-5">
+          {current.prompt}
+        </h1>
 
-          <LumiVoiceButton
-            text={current.prompt}
-            disabled={isThinking}
-            preface="Okay, quick question."
-            className="shrink-0"
-          />
-        </div>
-
-        {lumiLine && (
-          <div className="mb-4 text-white/80 text-sm bg-white/5 border border-white/10 rounded-xl px-4 py-3">
-            <span className="text-white/60 mr-2">Lumi:</span>
-            {lumiLine}
+        {/* Lumi reaction bubble */}
+        {reaction && !isThinking && (
+          <div className="mb-4 text-left">
+            <div className="inline-block bg-white/10 border border-white/15 rounded-2xl px-4 py-2 text-sm text-white/90 animate-[fadeIn_0.25s_ease-out]">
+              {reaction}
+            </div>
           </div>
         )}
 
+        {/* Typing Bubble */}
         {isThinking && (
-          <TypingBubble className="mb-5" label="Lumi is processing your vibe…" />
+          <TypingBubble className="mb-6" label="Lumi is processing your vibe…" />
         )}
 
+        {/* Options */}
         <div className="grid grid-cols-1 gap-3">
-          {current.options.map((opt) => {
-            const isSelected = selected?.id === opt.id;
-            return (
-              <button
-                key={opt.id}
-                onClick={() => pickOption(opt)}
-                disabled={isThinking}
-                className={`text-left px-5 py-4 rounded-2xl border transition ${
+          {current.options.map((opt) => (
+            <button
+              key={opt.id}
+              onClick={() => pickOption(opt)}
+              disabled={isThinking}
+              className={`text-left px-5 py-4 rounded-2xl border transition flex items-center justify-between
+                ${
                   isThinking
                     ? "bg-white/5 border-white/10 opacity-60 cursor-not-allowed"
-                    : isSelected
-                    ? "bg-white/15 border-white/30"
-                    : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
+                    : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 active:scale-[0.99]"
                 }`}
-              >
-                {opt.text}
-              </button>
-            );
-          })}
+            >
+              <span>{opt.text}</span>
+              <span className="text-white/40 text-xs">tap</span>
+            </button>
+          ))}
         </div>
       </div>
+
+      {/* small helper */}
+      <p className="text-xs text-white/50 mt-6">
+        Your answers stay private. Lumi just uses them to read your vibe.
+      </p>
+
+      {/* keyframes (Tailwind-safe) */}
+      <style jsx global>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(3px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </main>
   );
 }
