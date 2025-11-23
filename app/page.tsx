@@ -114,7 +114,7 @@ export default function HomePage() {
       </div>
 
       {/* WHY RIVVA WORKS */}
-      <section className="mt-24 max-w-5xl w-full z-10">
+      <section id="why" className="mt-24 max-w-5xl w-full z-10">
         <h2 className="text-3xl font-bold text-white mb-4">
           Why Rivva Works
         </h2>
@@ -159,53 +159,55 @@ export default function HomePage() {
       </section>
 
       {/* EARLY ACCESS CTA */}
-      <h3 className="text-2xl font-semibold text-white mt-20 mb-3 z-10">
-        Join the Rivva Early Access
-      </h3>
+      <section id="early-access" className="w-full flex flex-col items-center">
+        <h3 className="text-2xl font-semibold text-white mt-20 mb-3 z-10">
+          Join the Rivva Early Access
+        </h3>
 
-      <p className="text-white/70 mb-6 max-w-md z-10">
-        Be the first to experience intelligent matchmaking powered by emotional
-        understanding.
-      </p>
+        <p className="text-white/70 mb-6 max-w-md z-10">
+          Be the first to experience intelligent matchmaking powered by emotional
+          understanding.
+        </p>
 
-      {/* WAITLIST FORM */}
-      <form
-        onSubmit={handleSubmit}
-        className="flex flex-col sm:flex-row gap-3 w-full max-w-md z-10"
-      >
-        <input
-          type="email"
-          placeholder="Enter your email"
-          value={email}
-          required
-          onChange={(e) => setEmail(e.target.value)}
-          className="flex-1 p-3 border border-white/10 bg-white/5 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm text-white placeholder:text-white/40"
-        />
-
-        <button
-          type="submit"
-          disabled={status === "saving"}
-          className={`px-6 py-3 rounded-xl font-semibold transition shadow-md ${
-            status === "saving"
-              ? "bg-white/20 cursor-not-allowed text-white/70"
-              : "bg-white text-black hover:bg-white/90"
-          }`}
+        {/* WAITLIST FORM */}
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col sm:flex-row gap-3 w-full max-w-md z-10"
         >
-          {status === "saving"
-            ? "Saving..."
-            : status === "done"
-            ? "Saved!"
-            : "Join Waitlist"}
-        </button>
-      </form>
+          <input
+            type="email"
+            placeholder="Enter your email"
+            value={email}
+            required
+            onChange={(e) => setEmail(e.target.value)}
+            className="flex-1 p-3 border border-white/10 bg-white/5 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm text-white placeholder:text-white/40"
+          />
 
-      {status === "error" && (
-        <p className="text-red-400 mt-3 z-10">Something went wrong.</p>
-      )}
+          <button
+            type="submit"
+            disabled={status === "saving"}
+            className={`px-6 py-3 rounded-xl font-semibold transition shadow-md ${
+              status === "saving"
+                ? "bg-white/20 cursor-not-allowed text-white/70"
+                : "bg-white text-black hover:bg-white/90"
+            }`}
+          >
+            {status === "saving"
+              ? "Saving..."
+              : status === "done"
+              ? "Saved!"
+              : "Join Waitlist"}
+          </button>
+        </form>
 
-      <p className="text-xs text-white/50 mt-4 mb-24 z-10">
-        No spam. Just launch updates and early access.
-      </p>
+        {status === "error" && (
+          <p className="text-red-400 mt-3 z-10">Something went wrong.</p>
+        )}
+
+        <p className="text-xs text-white/50 mt-4 mb-24 z-10">
+          No spam. Just launch updates and early access.
+        </p>
+      </section>
     </main>
   );
 }
