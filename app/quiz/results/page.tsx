@@ -19,6 +19,7 @@ const BANDS: Record<
     strengths: string[];
     watchouts: string[];
     bestMatch: string;
+    shareLine: string;
   }
 > = {
   soul_first: {
@@ -31,12 +32,10 @@ const BANDS: Record<
       "Loyal once you choose",
       "Strong communicator",
     ],
-    watchouts: [
-      "You can over-invest early",
-      "You feel mismatches deeply",
-    ],
+    watchouts: ["You can over-invest early", "You feel mismatches deeply"],
     bestMatch:
       "Someone steady, emotionally mature, and clear about what they want.",
+    shareLine: "I’m a Soul-First Connector on Rivva.",
   },
   balanced_builder: {
     title: "Balanced Builder",
@@ -54,6 +53,7 @@ const BANDS: Record<
     ],
     bestMatch:
       "Someone playful but dependable — who matches your energy and effort.",
+    shareLine: "I’m a Balanced Builder on Rivva.",
   },
   spark_chaser: {
     title: "Spark-Driven Romantic",
@@ -71,6 +71,7 @@ const BANDS: Record<
     ],
     bestMatch:
       "Someone emotionally stable who can handle passion *and* build something real.",
+    shareLine: "I’m a Spark-Driven Romantic on Rivva.",
   },
 };
 
@@ -86,6 +87,7 @@ export default function ResultsPage() {
   const [maxScore, setMaxScore] = useState<number | null>(null);
   const [answers, setAnswers] = useState<AnswerMap | null>(null);
   const [loading, setLoading] = useState(true);
+  const [shareStatus, setShareStatus] = useState<"idle" | "copied">("idle");
 
   useEffect(() => {
     const s = Number(sessionStorage.getItem("rivva_quiz_score"));
@@ -106,6 +108,32 @@ export default function ResultsPage() {
   const band = BANDS[bandKey];
   const pct = maxScore ? Math.round(((score ?? 0) / maxScore) * 100) : 0;
 
+  async function handleShare() {
+    const url = typeof window !== "undefined" ? window.location.origin : "";
+    const shareText = `${band.shareLine} My vibe score: ${pct}%. Take the Lumi quiz on Rivva.`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "My Rivva compatibility vibe",
+          text: shareText,
+          url,
+        });
+        return;
+      }
+    } catch {
+      // fall through to copy
+    }
+
+    try {
+      await navigator.clipboard.writeText(`${shareText} ${url}`);
+      setShareStatus("copied");
+      setTimeout(() => setShareStatus("idle"), 1500);
+    } catch {
+      // last resort: do nothing
+    }
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center justify-center px-6">
@@ -124,15 +152,15 @@ export default function ResultsPage() {
       <div className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-3xl p-8 shadow-xl">
         <p className="text-sm text-white/60 mb-2">Your compatibility vibe</p>
 
-        <h1 className="text-3xl md:text-4xl font-bold mb-2">
-          {band.title}
-        </h1>
+        <h1 className="text-3xl md:text-4xl font-bold mb-2">{band.title}</h1>
         <p className="text-white/75 mb-6">{band.subtitle}</p>
 
         <div className="mb-6">
           <div className="flex items-center justify-between text-xs text-white/60 mb-2">
             <span>Score</span>
-            <span>{score} / {maxScore} ({pct}%)</span>
+            <span>
+              {score} / {maxScore} ({pct}%)
+            </span>
           </div>
           <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
             <div
@@ -173,7 +201,7 @@ export default function ResultsPage() {
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 mb-3">
           <Link
             href="/quiz"
             className="flex-1 text-center px-5 py-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 transition"
@@ -188,9 +216,15 @@ export default function ResultsPage() {
             Back to Rivva
           </Link>
         </div>
+
+        <button
+          onClick={handleShare}
+          className="w-full px-5 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-cyan-400 text-black font-semibold hover:opacity-90 transition active:scale-[0.98]"
+        >
+          {shareStatus === "copied" ? "Copied ✓" : "Share my vibe"}
+        </button>
       </div>
 
-      {/* tiny debug (optional) */}
       {process.env.NODE_ENV !== "production" && answers && (
         <pre className="mt-8 text-xs text-white/40 max-w-2xl whitespace-pre-wrap">
           {JSON.stringify(answers, null, 2)}

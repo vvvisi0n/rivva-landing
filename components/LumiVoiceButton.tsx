@@ -2,139 +2,126 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-function pickBestVoice(voices: SpeechSynthesisVoice[]) {
-  const english = voices.filter((v) => /en/i.test(v.lang));
-
-  // Prefer more natural / female / neural-ish voices when present
-  const preferredNames = [
-    "Samantha",
-    "Google US English",
-    "Google UK English Female",
-    "Microsoft Aria",
-    "Microsoft Jenny",
-    "Microsoft Zira",
-    "Karen",
-    "Moira",
-    "Tessa",
-    "Serena",
-  ];
-
-  for (const name of preferredNames) {
-    const found = english.find((v) => v.name.includes(name));
-    if (found) return found;
-  }
-
-  // Otherwise pick first English voice
-  return english[0] || voices[0];
-}
-
-export default function LumiVoiceButton({
-  text,
-  className = "",
-  disabled = false,
-  preface = "Alright, here’s your question.",
-}: {
+type Props = {
   text: string;
   className?: string;
-  disabled?: boolean;
-  preface?: string;
-}) {
+};
+
+export default function LumiVoiceButton({ text, className }: Props) {
   const [supported, setSupported] = useState(false);
   const [speaking, setSpeaking] = useState(false);
-  const [voice, setVoice] = useState<SpeechSynthesisVoice | null>(null);
-
+  const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
   const utterRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // check support
   useEffect(() => {
-    setSupported(
+    const ok =
       typeof window !== "undefined" &&
-        "speechSynthesis" in window &&
-        typeof SpeechSynthesisUtterance !== "undefined"
-    );
+      "speechSynthesis" in window &&
+      "SpeechSynthesisUtterance" in window;
+
+    setSupported(ok);
+    if (!ok) return;
+
+    function loadVoices() {
+      voicesRef.current = window.speechSynthesis.getVoices();
+    }
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+      window.speechSynthesis.cancel();
+    };
   }, []);
 
-  // load voices (some browsers load async)
-  useEffect(() => {
-    if (!supported) return;
+  const lumiVoice = useMemo(() => {
+    const voices = voicesRef.current || [];
+    if (!voices.length) return null;
 
-    const synth = window.speechSynthesis;
+    // Prefer natural English female voices when available
+    const preferred = [
+      "Google US English",
+      "Microsoft Aria Online",
+      "Microsoft Jenny Online",
+      "Samantha",
+      "Ava",
+      "Serena",
+      "Victoria",
+    ];
 
-    function load() {
-      const voices = synth.getVoices();
-      if (voices?.length) setVoice(pickBestVoice(voices));
+    // 1) Exact preferred match
+    for (const name of preferred) {
+      const v = voices.find(
+        (vv) =>
+          vv.name.toLowerCase().includes(name.toLowerCase()) &&
+          vv.lang.toLowerCase().startsWith("en")
+      );
+      if (v) return v;
     }
 
-    load();
-    synth.addEventListener("voiceschanged", load);
+    // 2) Any English female-ish voice by heuristic
+    const femaleHint = voices.find(
+      (vv) =>
+        vv.lang.toLowerCase().startsWith("en") &&
+        /female|woman|girl|aria|jenny|samantha|ava|victoria|serena/i.test(vv.name)
+    );
+    if (femaleHint) return femaleHint;
 
-    return () => synth.removeEventListener("voiceschanged", load);
-  }, [supported]);
+    // 3) Fallback: first English
+    return voices.find((vv) => vv.lang.toLowerCase().startsWith("en")) || null;
+  }, [supported, speaking]);
 
-  // stop speaking if question changes
-  useEffect(() => {
+  function stop() {
     if (!supported) return;
     window.speechSynthesis.cancel();
     setSpeaking(false);
-  }, [text, supported]);
+    utterRef.current = null;
+  }
 
-  const canSpeak = useMemo(
-    () => supported && !disabled && text?.trim().length > 0,
-    [supported, disabled, text]
-  );
+  function speak() {
+    if (!supported) return;
 
-  function toggleSpeak() {
-    if (!canSpeak) return;
-
-    const synth = window.speechSynthesis;
-
-    // stop if already speaking
+    // If already speaking, toggle off
     if (speaking) {
-      synth.cancel();
-      setSpeaking(false);
+      stop();
       return;
     }
 
-    synth.cancel();
+    window.speechSynthesis.cancel();
 
-    const spokenText = `${preface} ${text}`;
-    const utter = new SpeechSynthesisUtterance(spokenText);
+    const u = new SpeechSynthesisUtterance(text);
 
-    if (voice) utter.voice = voice;
+    if (lumiVoice) u.voice = lumiVoice;
 
-    // warmer pacing
-    utter.rate = 0.95;  // slightly slower
-    utter.pitch = 1.05; // friendly lift
-    utter.volume = 1;
+    // Natural cadence
+    u.rate = 0.98;   // slightly slower than default
+    u.pitch = 1.05;  // gentle brightness
+    u.volume = 1;
 
-    utter.onend = () => setSpeaking(false);
-    utter.onerror = () => setSpeaking(false);
+    u.onstart = () => setSpeaking(true);
+    u.onend = () => setSpeaking(false);
+    u.onerror = () => setSpeaking(false);
 
-    utterRef.current = utter;
-    setSpeaking(true);
-    synth.speak(utter);
+    utterRef.current = u;
+    window.speechSynthesis.speak(u);
   }
 
   if (!supported) return null;
 
   return (
     <button
-      type="button"
-      onClick={toggleSpeak}
-      disabled={!canSpeak}
-      aria-label={speaking ? "Stop Lumi voice" : "Play Lumi voice"}
-      className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm ${
-        !canSpeak ? "opacity-50 cursor-not-allowed" : ""
-      } ${className}`}
+      onClick={speak}
+      aria-label="Toggle Lumi voice"
+      className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium
+        border border-white/15 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition
+        ${className || ""}`}
     >
-      <span className="text-white/90">
-        {speaking ? "Stop Voice" : "Lumi Voice"}
-      </span>
       <span
-        className={`w-2 h-2 rounded-full ${
+        className={`h-2.5 w-2.5 rounded-full ${
           speaking ? "bg-cyan-300 animate-pulse" : "bg-white/50"
         }`}
       />
+      {speaking ? "Lumi speaking…" : "Hear Lumi"}
     </button>
   );
 }
