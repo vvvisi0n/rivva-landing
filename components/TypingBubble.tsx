@@ -1,38 +1,24 @@
 "use client";
 
-import React from "react";
-
-type TypingBubbleProps = {
-  label?: string;          // optional text like "Lumi is thinking..."
+type Props = {
+  label?: string;
   className?: string;
-  size?: "sm" | "md" | "lg";
 };
 
 export default function TypingBubble({
   label = "Lumi is thinking…",
   className = "",
-  size = "md",
-}: TypingBubbleProps) {
-  const dotSize =
-    size === "sm" ? "w-1.5 h-1.5" : size === "lg" ? "w-3 h-3" : "w-2 h-2";
-
+}: Props) {
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
-      {/* Bubble */}
-      <div className="bg-white/90 border border-slate-200 shadow-sm rounded-2xl px-4 py-2 flex items-center gap-2">
-        <span
-          className={`${dotSize} rounded-full bg-slate-400 animate-bounce [animation-delay:0ms]`}
-        />
-        <span
-          className={`${dotSize} rounded-full bg-slate-400 animate-bounce [animation-delay:150ms]`}
-        />
-        <span
-          className={`${dotSize} rounded-full bg-slate-400 animate-bounce [animation-delay:300ms]`}
-        />
+    <div className={`flex items-center gap-3 text-white/80 ${className}`}>
+      <div className="bg-white/10 border border-white/10 rounded-2xl px-4 py-2 flex items-center gap-2">
+        <span className="text-sm">{label}</span>
+        <span className="flex items-center gap-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-white/70 animate-bounce [animation-delay:0ms]" />
+          <span className="h-1.5 w-1.5 rounded-full bg-white/70 animate-bounce [animation-delay:150ms]" />
+          <span className="h-1.5 w-1.5 rounded-full bg-white/70 animate-bounce [animation-delay:300ms]" />
+        </span>
       </div>
-
-      {/* Label */}
-      <span className="text-sm text-slate-500">{label}</span>
     </div>
   );
 }
