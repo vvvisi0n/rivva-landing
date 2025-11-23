@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import LumiOrb from "@/components/LumiOrb";
 import TypingBubble from "@/components/TypingBubble";
@@ -23,6 +23,8 @@ type Question = {
   id: string;
   prompt: string;
   options: Option[];
+  // short Lumi reaction after you pick something
+  reactions: Record<string, string>;
 };
 
 const QUESTIONS: Question[] = [
@@ -35,6 +37,12 @@ const QUESTIONS: Question[] = [
       { id: "c", text: "Physical attraction", traits: { adventurous: 1, playful: 1 } },
       { id: "d", text: "The conversation flow", traits: { emotional: 2, grounded: 1 } },
     ],
+    reactions: {
+      a: "Ooo you’re a vibe-first person. I like that.",
+      b: "Mind first. You’re looking for depth.",
+      c: "Honest. Chemistry matters to you.",
+      d: "Flow is everything — I’m tracking that.",
+    },
   },
   {
     id: "q2",
@@ -45,6 +53,12 @@ const QUESTIONS: Question[] = [
       { id: "c", text: "Low-pressure chill hang", traits: { grounded: 2 } },
       { id: "d", text: "Deep talk over coffee", traits: { emotional: 2, grounded: 1 } },
     ],
+    reactions: {
+      a: "Intentional. You like meaning early.",
+      b: "You’re here for sparks and stories.",
+      c: "Calm energy. You prefer comfort first.",
+      d: "You want the soul talk. Respect.",
+    },
   },
   {
     id: "q3",
@@ -55,6 +69,12 @@ const QUESTIONS: Question[] = [
       { id: "c", text: "Wait and watch", traits: { grounded: 2 } },
       { id: "d", text: "Make a bold move", traits: { adventurous: 2, playful: 1 } },
     ],
+    reactions: {
+      a: "Direct affection — that’s secure energy.",
+      b: "Playful pursuit. You make it fun.",
+      c: "You’re strategic. I see you.",
+      d: "Boldness? Yeah you don’t stall.",
+    },
   },
   {
     id: "q4",
@@ -65,6 +85,12 @@ const QUESTIONS: Question[] = [
       { id: "c", text: "Avoid it if possible", traits: { playful: 1 } },
       { id: "d", text: "Use humor to soften it", traits: { playful: 2 } },
     ],
+    reactions: {
+      a: "You’re a fixer. Healthy.",
+      b: "Space first, clarity later. Solid.",
+      c: "You protect peace. Noted.",
+      d: "You disarm tension with warmth. Love that.",
+    },
   },
   {
     id: "q5",
@@ -75,6 +101,12 @@ const QUESTIONS: Question[] = [
       { id: "c", text: "It’s exciting + passionate", traits: { adventurous: 2, playful: 1 } },
       { id: "d", text: "You feel deeply understood", traits: { emotional: 2, grounded: 1 } },
     ],
+    reactions: {
+      a: "Safety is your foundation.",
+      b: "Growth couple energy. Nice.",
+      c: "You want heat and momentum.",
+      d: "Being seen matters most to you.",
+    },
   },
   {
     id: "q6",
@@ -85,6 +117,12 @@ const QUESTIONS: Question[] = [
       { id: "c", text: "Do something light + fun", traits: { playful: 2 } },
       { id: "d", text: "Handle some life stuff together", traits: { grounded: 2 } },
     ],
+    reactions: {
+      a: "You’re intimacy over itinerary.",
+      b: "Explorer energy. Got it.",
+      c: "Play keeps you close.",
+      d: "Teamwork is romantic to you.",
+    },
   },
   {
     id: "q7",
@@ -95,6 +133,12 @@ const QUESTIONS: Question[] = [
       { id: "c", text: "Emotional coldness", traits: { emotional: 2 } },
       { id: "d", text: "Too much routine", traits: { adventurous: 2 } },
     ],
+    reactions: {
+      a: "You need reliability. Fair.",
+      b: "You want spark, not small talk.",
+      c: "Warmth is non-negotiable for you.",
+      d: "You need novelty to stay engaged.",
+    },
   },
   {
     id: "q8",
@@ -105,6 +149,12 @@ const QUESTIONS: Question[] = [
       { id: "c", text: "Acts of care + reliability", traits: { grounded: 2 } },
       { id: "d", text: "Adventure + shared experiences", traits: { adventurous: 2 } },
     ],
+    reactions: {
+      a: "You feel loved through connection.",
+      b: "Laughter is your glue.",
+      c: "You love through consistency.",
+      d: "You bond through doing life.",
+    },
   },
   {
     id: "q9",
@@ -115,6 +165,12 @@ const QUESTIONS: Question[] = [
       { id: "c", text: "Keep it exciting", traits: { adventurous: 2 } },
       { id: "d", text: "Make you feel seen", traits: { emotional: 2 } },
     ],
+    reactions: {
+      a: "Clarity keeps you safe.",
+      b: "Effort > words. Real.",
+      c: "You want momentum, not stagnation.",
+      d: "Seeing you deeply is the key.",
+    },
   },
   {
     id: "q10",
@@ -125,6 +181,12 @@ const QUESTIONS: Question[] = [
       { id: "c", text: "A steady build", traits: { grounded: 2 } },
       { id: "d", text: "A wild unexpected moment", traits: { adventurous: 2, playful: 1 } },
     ],
+    reactions: {
+      a: "Emotional chemistry is your anchor.",
+      b: "You fall through fun.",
+      c: "You trust what grows slowly.",
+      d: "You love the unexpected.",
+    },
   },
 ];
 
@@ -143,9 +205,14 @@ export default function QuizPage() {
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, Option>>({});
   const [isThinking, setIsThinking] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [lumiLine, setLumiLine] = useState<string | null>(null);
 
   const current = QUESTIONS[index];
   const selectedForCurrent = answers[current.id];
+
+  // Keep last spoken text so we don't double-speak on minor rerenders
+  const lastSpokenRef = useRef<string>("");
 
   const progress = useMemo(
     () => Math.round((index / totalQuestions) * 100),
@@ -165,9 +232,38 @@ export default function QuizPage() {
     };
   }
 
+  function speak(text: string) {
+    if (typeof window === "undefined") return;
+    if (!("speechSynthesis" in window)) return;
+
+    // cancel any existing speech
+    window.speechSynthesis.cancel();
+
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 1;
+    utter.pitch = 1.05;
+    utter.lang = "en-US";
+
+    lastSpokenRef.current = text;
+    window.speechSynthesis.speak(utter);
+  }
+
+  // Autoplay Lumi voice on each new question
+  useEffect(() => {
+    if (!started) return;
+    if (!voiceEnabled) return;
+
+    const text = current.prompt;
+    if (lastSpokenRef.current === text) return; // avoid duplicates
+
+    speak(text);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current.id, started, voiceEnabled]);
+
   function goBack() {
     if (isThinking) return;
     if (index === 0) return;
+    setLumiLine(null);
     setIndex((i) => i - 1);
   }
 
@@ -177,11 +273,19 @@ export default function QuizPage() {
     const nextAnswers = { ...answers, [current.id]: opt };
     setAnswers(nextAnswers);
 
-    // Lumi “thinking” micro-pause
+    // Lumi reaction line
+    const reaction = current.reactions[opt.id];
+    setLumiLine(reaction);
+
+    if (voiceEnabled && reaction) {
+      speak(reaction);
+    }
+
     setIsThinking(true);
 
     setTimeout(() => {
       setIsThinking(false);
+      setLumiLine(null);
 
       if (index + 1 < totalQuestions) {
         setIndex((i) => i + 1);
@@ -199,7 +303,7 @@ export default function QuizPage() {
 
         router.push("/quiz/results");
       }
-    }, 700);
+    }, 850);
   }
 
   if (!started) {
@@ -240,7 +344,7 @@ export default function QuizPage() {
       </div>
 
       <div className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-3xl p-8 shadow-xl">
-        {/* Top row: back + progress */}
+        {/* Top row: back + progress + voice toggle */}
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={goBack}
@@ -258,6 +362,17 @@ export default function QuizPage() {
           <div className="text-sm text-white/70">
             Question {index + 1} of {totalQuestions} • {progress}%
           </div>
+
+          <button
+            onClick={() => setVoiceEnabled((v) => !v)}
+            className={`text-xs px-3 py-1 rounded-full border transition ${
+              voiceEnabled
+                ? "border-cyan-300/60 bg-cyan-300/10 text-cyan-100"
+                : "border-white/20 text-white/70 hover:bg-white/10"
+            }`}
+          >
+            Lumi Voice: {voiceEnabled ? "ON" : "OFF"}
+          </button>
         </div>
 
         <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden mb-8">
@@ -269,12 +384,23 @@ export default function QuizPage() {
 
         {/* Animated question block */}
         <div key={current.id} className="quiz-fade">
-          <h1 className="text-2xl md:text-3xl font-semibold leading-snug mb-6">
-            {current.prompt}
-          </h1>
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <h1 className="text-2xl md:text-3xl font-semibold leading-snug">
+              {current.prompt}
+            </h1>
 
+            {/* Replay question voice */}
+            <div className="shrink-0">
+              <LumiVoiceButton textToSpeak={current.prompt} />
+            </div>
+          </div>
+
+          {/* Lumi reaction bubble while thinking */}
           {isThinking && (
-            <TypingBubble className="mb-6" label="Lumi is processing your vibe…" />
+            <TypingBubble
+              className="mb-6"
+              label={lumiLine ?? "Lumi is processing your vibe…"}
+            />
           )}
 
           <div className="grid grid-cols-1 gap-3">
@@ -303,7 +429,7 @@ export default function QuizPage() {
         </div>
       </div>
 
-      {/* Simple fade/slide animation (no plugins needed) */}
+      {/* Simple fade/slide animation */}
       <style jsx global>{`
         @keyframes quizFade {
           from { opacity: 0; transform: translateY(8px); }
