@@ -40,43 +40,66 @@ export default function HomePage() {
   }
 
   return (
-    <main className="relative overflow-hidden min-h-screen flex flex-col items-center justify-start px-6 pt-40 pb-24 text-center bg-[#0b0b14] text-white">
-      {/* background glow */}
+    <main className="relative overflow-hidden min-h-screen flex flex-col items-center justify-start px-6 pt-44 text-center bg-[#0b0b14] text-white">
+      {/* Glow background */}
       <HeroGlow />
 
-      {/* Lumi hologram */}
+      {/* Floating Lumi hologram */}
       <LumiAvatar />
 
-      {/* orb */}
-      <div className="mt-10 mb-6 z-10">
+      {/* Orb */}
+      <div className="mb-10 z-10">
         <LumiOrb />
       </div>
 
       {/* LOGO */}
-      <h1 className="text-6xl md:text-7xl font-extrabold text-white drop-shadow-sm mb-3 tracking-tight z-10">
+      <h1 className="text-7xl md:text-8xl font-extrabold text-white drop-shadow-sm mb-3 tracking-tight z-10">
         Rivva
       </h1>
 
-      {/* Lumi typing intro */}
-      <LumiTyping />
+      {/* Lumi’s animated intro */}
+      <div className="z-10">
+        <LumiTyping />
+      </div>
 
       {/* TAGLINES */}
       <p className="text-xl text-white/80 font-medium mt-6 z-10">
         Connection made smarter.
       </p>
-      <p className="text-lg text-white/60 italic mt-2 z-10">
+      <p className="text-lg text-white/70 italic mt-2 z-10">
         Where emotional intelligence meets attraction.
       </p>
       <p className="text-xl text-purple-300 font-semibold mt-4 z-10">
         Finally… an end to endless swiping.
       </p>
 
-      {/* Meet Lumi */}
-      <section className="max-w-2xl mt-12 z-10 text-center">
-        <h2 className="text-2xl md:text-3xl font-bold text-purple-200 mb-4">
-          Meet Lumi
-        </h2>
+      {/* QUIZ CTA */}
+      <section className="mt-14 z-10 w-full max-w-3xl">
+        <div className="rounded-3xl bg-white/5 border border-white/10 p-8 shadow-xl">
+          <h2 className="text-2xl md:text-3xl font-bold mb-3">
+            Take the Lumi Compatibility Quiz
+          </h2>
+          <p className="text-white/75 leading-relaxed mb-6">
+            In 60 seconds, Lumi learns your relationship vibe and gives you a
+            compatibility read — the kind that feels human, not random.
+          </p>
 
+          <Link
+            href="/quiz"
+            className="inline-flex items-center justify-center px-7 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-cyan-400 text-black font-semibold hover:opacity-90 transition"
+          >
+            Start Quiz
+          </Link>
+
+          <p className="text-xs text-white/50 mt-3">
+            No signup required.
+          </p>
+        </div>
+      </section>
+
+      {/* Meet Lumi */}
+      <div className="max-w-xl text-center mt-16 z-10">
+        <h2 className="text-2xl font-bold text-white mb-4">Meet Lumi</h2>
         <p className="text-white/70 leading-relaxed">
           Your personal AI dating coach. Lumi learns your emotional patterns,
           communication style, and values to help you meet people who actually
@@ -88,31 +111,11 @@ export default function HomePage() {
           swipes — to match you with people who fit your energy, not just your
           photos.
         </p>
-      </section>
-
-      {/* QUIZ CTA */}
-      <section className="mt-14 z-10 w-full max-w-xl">
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 md:p-8 shadow-xl">
-          <h3 className="text-2xl font-semibold mb-2">
-            Start with the Lumi Compatibility Quiz
-          </h3>
-          <p className="text-white/70">
-            60 seconds. No sign-up. Lumi reads your vibe and shows how Rivva will
-            match you smarter.
-          </p>
-
-          <Link
-            href="/quiz"
-            className="mt-5 inline-flex items-center justify-center px-6 py-3 rounded-2xl font-semibold bg-gradient-to-r from-purple-500 to-cyan-400 text-black hover:opacity-90 transition"
-          >
-            Take the Quiz →
-          </Link>
-        </div>
-      </section>
+      </div>
 
       {/* WHY RIVVA WORKS */}
-      <section className="mt-20 max-w-5xl w-full z-10">
-        <h2 className="text-3xl font-bold text-purple-200 mb-4">
+      <section className="mt-24 max-w-5xl w-full z-10">
+        <h2 className="text-3xl font-bold text-white mb-4">
           Why Rivva Works
         </h2>
         <p className="text-white/70 max-w-2xl mx-auto leading-relaxed">
@@ -121,85 +124,88 @@ export default function HomePage() {
           that feels human — not like a random swipe match.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10 text-left">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-10 text-left">
           <div className="p-6 rounded-2xl bg-white/5 shadow-md border border-white/10 hover:bg-white/10 transition">
-            <h3 className="text-lg font-semibold text-purple-200">
-              Emotional Intelligence Map
+            <h3 className="text-lg font-semibold text-white">
+              Emotional Intelligence Graph
             </h3>
             <p className="text-white/70 text-sm mt-2">
-              Lumi maps how you respond to emotional scenarios — attachment
-              style, pacing, affection, boundaries — then finds people whose
-              patterns complement yours.
+              Lumi maps how you respond to emotional scenarios — pacing,
+              boundaries, affection — then finds people whose patterns align
+              with yours.
             </p>
           </div>
 
           <div className="p-6 rounded-2xl bg-white/5 shadow-md border border-white/10 hover:bg-white/10 transition">
-            <h3 className="text-lg font-semibold text-purple-200">
+            <h3 className="text-lg font-semibold text-white">
               Communication Signals
             </h3>
             <p className="text-white/70 text-sm mt-2">
-              Rivva watches tone, curiosity, empathy, humor, and how
-              conversations *feel* over time — not just prompts.
+              Rivva pays attention to tone, curiosity, empathy, humor, and how
+              conversations actually feel over time.
             </p>
           </div>
 
           <div className="p-6 rounded-2xl bg-white/5 shadow-md border border-white/10 hover:bg-white/10 transition">
-            <h3 className="text-lg font-semibold text-purple-200">
+            <h3 className="text-lg font-semibold text-white">
               Continuous Learning
             </h3>
             <p className="text-white/70 text-sm mt-2">
               As you interact, Lumi refines your compatibility blueprint — who
-              drains you, who energizes you, and what “right” feels like.
+              energizes you, who drains you, and what “right” feels like.
             </p>
           </div>
         </div>
       </section>
 
-      {/* WAITLIST */}
-      <section className="mt-20 z-10 w-full max-w-md">
-        <h3 className="text-2xl font-semibold text-purple-200 mb-3">
-          Join the Rivva Early Access
-        </h3>
-        <p className="text-white/70 mb-6">
-          Be the first to experience intelligent matchmaking powered by emotional
-          understanding.
-        </p>
+      {/* EARLY ACCESS CTA */}
+      <h3 className="text-2xl font-semibold text-white mt-20 mb-3 z-10">
+        Join the Rivva Early Access
+      </h3>
 
-        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
-          <input
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            required
-            onChange={(e) => setEmail(e.target.value)}
-            className="flex-1 p-3 border border-white/10 bg-white/5 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
-          />
+      <p className="text-white/70 mb-6 max-w-md z-10">
+        Be the first to experience intelligent matchmaking powered by emotional
+        understanding.
+      </p>
 
-          <button
-            type="submit"
-            disabled={status === "saving"}
-            className={`px-6 py-3 rounded-xl font-semibold transition shadow-md ${
-              status === "saving"
-                ? "bg-purple-400 cursor-not-allowed text-black"
-                : "bg-purple-500 hover:bg-purple-600 text-black"
-            }`}
-          >
-            {status === "saving"
-              ? "Saving..."
-              : status === "done"
-              ? "Saved!"
-              : "Join Waitlist"}
-          </button>
-        </form>
+      {/* WAITLIST FORM */}
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col sm:flex-row gap-3 w-full max-w-md z-10"
+      >
+        <input
+          type="email"
+          placeholder="Enter your email"
+          value={email}
+          required
+          onChange={(e) => setEmail(e.target.value)}
+          className="flex-1 p-3 border border-white/10 bg-white/5 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm text-white placeholder:text-white/40"
+        />
 
-        {status === "error" && (
-          <p className="text-red-400 mt-3">Something went wrong.</p>
-        )}
+        <button
+          type="submit"
+          disabled={status === "saving"}
+          className={`px-6 py-3 rounded-xl font-semibold transition shadow-md ${
+            status === "saving"
+              ? "bg-white/20 cursor-not-allowed text-white/70"
+              : "bg-white text-black hover:bg-white/90"
+          }`}
+        >
+          {status === "saving"
+            ? "Saving..."
+            : status === "done"
+            ? "Saved!"
+            : "Join Waitlist"}
+        </button>
+      </form>
 
-        <p className="text-xs text-white/50 mt-4">
-          No spam. Just launch updates and early access.
-        </p>
-      </section>
+      {status === "error" && (
+        <p className="text-red-400 mt-3 z-10">Something went wrong.</p>
+      )}
+
+      <p className="text-xs text-white/50 mt-4 mb-24 z-10">
+        No spam. Just launch updates and early access.
+      </p>
     </main>
   );
 }
