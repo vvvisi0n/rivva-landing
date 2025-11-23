@@ -1,250 +1,233 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+
 import LumiOrb from "@/components/LumiOrb";
+import TypingBubble from "@/components/TypingBubble";
+import LumiVoiceButton from "@/components/LumiVoiceButton";
 
-type StoredAnswer = {
-  id: string;
-  text: string;
-  score: number;
-};
+type Option = { id: string; text: string; score: number };
+type Answers = Record<string, Option>;
 
-type AnswersMap = Record<string, StoredAnswer>;
-
-type Archetype = {
+type ResultBand = {
+  key: "deep" | "balanced" | "spark";
   title: string;
   subtitle: string;
   description: string;
-  strengths: string[];
-  growthEdges: string[];
-  colorClass: string;
+  color: string; // tailwind class
+  tips: string[];
 };
 
-function getArchetype(score: number, totalPossible: number): Archetype {
-  const pct = totalPossible === 0 ? 0 : score / totalPossible;
-
-  if (pct >= 0.85) {
-    return {
-      title: "The Heart-Reader",
-      subtitle: "You connect through depth, safety, and emotional clarity.",
-      description:
-        "Lumi sees you as someone who’s naturally tuned into emotional undercurrents. You move toward people who feel steady and sincere, and your relationships thrive on honesty, empathy, and mutual growth.",
-      strengths: [
-        "Emotionally present and perceptive",
-        "Values real compatibility over hype",
-        "Builds trust fast through sincerity",
-      ],
-      growthEdges: [
-        "Don’t over-give before trust is earned",
-        "Let chemistry build naturally, not perfectly",
-        "Keep your standards high, but stay open",
-      ],
-      colorClass: "from-purple-500 to-cyan-400",
-    };
-  }
-
-  if (pct >= 0.65) {
-    return {
-      title: "The Slow-Burn Spark",
-      subtitle: "You fall for people who match your rhythm and energy.",
-      description:
-        "You don’t chase random sparks — you trust patterns. Lumi reads you as someone who needs emotional consistency before attraction locks in. You’re at your best when things unfold naturally.",
-      strengths: [
-        "Selectively open, not impulsive",
-        "Great at recognizing real alignment",
-        "Stable and intentional",
-      ],
-      growthEdges: [
-        "Don’t confuse comfort with stagnation",
-        "Share your feelings sooner",
-        "Let people show up in their own way",
-      ],
-      colorClass: "from-fuchsia-500 to-purple-400",
-    };
-  }
-
-  if (pct >= 0.45) {
-    return {
-      title: "The Curious Connector",
-      subtitle: "You’re drawn to conversation and discovery.",
-      description:
-        "Lumi sees you as exploratory: you learn what you feel by engaging. Attraction grows for you through fun, curiosity, and emotional safety over time.",
-      strengths: [
-        "Open-minded and socially intuitive",
-        "Finds connection in unexpected places",
-        "Balances fun with meaning",
-      ],
-      growthEdges: [
-        "Name your needs earlier",
-        "Don’t stay where you feel unsure",
-        "Watch for mixed signals (in you + them)",
-      ],
-      colorClass: "from-cyan-400 to-emerald-400",
-    };
-  }
-
-  return {
-    title: "The Guarded Romantic",
-    subtitle: "You want love, but you protect your heart.",
+const BANDS: ResultBand[] = [
+  {
+    key: "deep",
+    title: "Deep Connector",
+    subtitle: "emotion-first chemistry",
     description:
-      "Lumi reads a high emotional radar with strong self-protection. You’re not cold — you’re careful. You’ll thrive with someone who builds trust slowly and respects boundaries.",
-    strengths: [
-      "Strong boundaries",
-      "Loyal once safe",
-      "Highly observant of energy shifts",
+      "You bond through safety, meaning, and real emotional alignment. You’re not here for random sparks — you want connection that holds weight.",
+    color: "from-purple-400 to-cyan-300",
+    tips: [
+      "You thrive with people who communicate clearly.",
+      "You value consistency over intensity.",
+      "You’re at your best when trust builds steadily.",
     ],
-    growthEdges: [
-      "Let safe people get closer",
-      "Don’t interpret uncertainty as danger",
-      "Practice asking instead of assuming",
+  },
+  {
+    key: "balanced",
+    title: "Balanced Builder",
+    subtitle: "slow burn + strong foundation",
+    description:
+      "You want both vibe and values. You’re open to fun, but you pay attention to how someone shows up over time.",
+    color: "from-cyan-300 to-purple-400",
+    tips: [
+      "You connect best with grounded people.",
+      "You prefer growth over drama.",
+      "You’re drawn to chemistry that feels calm and real.",
     ],
-    colorClass: "from-amber-400 to-pink-400",
-  };
+  },
+  {
+    key: "spark",
+    title: "Spark Chaser",
+    subtitle: "energy + excitement led",
+    description:
+      "You fall for presence, attraction, and momentum. You want a relationship that feels alive, playful, and emotionally electric.",
+    color: "from-fuchsia-400 to-purple-300",
+    tips: [
+      "You thrive with people who match your energy.",
+      "You need chemistry that stays fun.",
+      "You still want emotional safety — even when it’s exciting.",
+    ],
+  },
+];
+
+function getBand(score: number): ResultBand {
+  // max score with current quiz = 12
+  if (score >= 9) return BANDS[0];       // Deep Connector
+  if (score >= 5) return BANDS[1];       // Balanced Builder
+  return BANDS[2];                      // Spark Chaser
 }
 
 export default function QuizResultsPage() {
   const router = useRouter();
+
   const [score, setScore] = useState<number | null>(null);
-  const [answers, setAnswers] = useState<AnswersMap | null>(null);
+  const [answers, setAnswers] = useState<Answers | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    // sessionStorage is only available client-side
-    const s = sessionStorage.getItem("rivva_quiz_score");
-    const a = sessionStorage.getItem("rivva_quiz_answers");
-
-    if (!s || !a) {
-      // no data -> send them back to quiz
-      router.replace("/quiz");
-      return;
-    }
-
     try {
+      const s = sessionStorage.getItem("rivva_quiz_score");
+      const a = sessionStorage.getItem("rivva_quiz_answers");
+
+      if (!s || !a) {
+        router.replace("/quiz");
+        return;
+      }
+
       setScore(Number(s));
       setAnswers(JSON.parse(a));
-    } catch {
+    } catch (e) {
+      console.error(e);
       router.replace("/quiz");
+    } finally {
+      setLoading(false);
     }
   }, [router]);
 
-  const totalPossible = useMemo(() => {
-    if (!answers) return 0;
-    return Object.values(answers).reduce((sum, ans) => sum + 3, 0);
-  }, [answers]);
+  const band = useMemo(() => {
+    if (score == null) return null;
+    return getBand(score);
+  }, [score]);
 
-  const archetype = useMemo(() => {
-    if (score === null) return null;
-    return getArchetype(score, totalPossible);
-  }, [score, totalPossible]);
+  function handleRetake() {
+    sessionStorage.removeItem("rivva_quiz_score");
+    sessionStorage.removeItem("rivva_quiz_answers");
+    router.push("/quiz");
+  }
 
-  if (score === null || !answers || !archetype) {
+  async function handleShare() {
+    if (!band || score == null) return;
+
+    const text = `I got "${band.title}" on the Rivva Lumi quiz. My vibe score: ${score}/12.`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1400);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  if (loading || !band || score == null) {
     return (
-      <main className="min-h-screen bg-[#0b0b14] text-white flex items-center justify-center">
-        <p className="text-white/70">Loading your results…</p>
+      <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center justify-center px-6">
+        <TypingBubble label="Lumi is finalizing your results…" />
       </main>
     );
   }
 
-  const pct = totalPossible === 0 ? 0 : Math.round((score / totalPossible) * 100);
-
   return (
     <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center px-6 py-16">
+      {/* Orb */}
       <div className="mb-8">
         <LumiOrb />
       </div>
 
-      <div className="w-full max-w-3xl bg-white/5 border border-white/10 rounded-3xl p-8 md:p-10 shadow-xl">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+      {/* Results Card */}
+      <section className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-3xl p-8 shadow-xl">
+        <div className="flex items-start justify-between gap-4">
           <div>
+            <p className="text-white/70 text-sm mb-2">Your Lumi Result</p>
             <h1 className="text-3xl md:text-4xl font-bold">
-              {archetype.title}
+              {band.title}
             </h1>
-            <p className="text-white/70 mt-2">{archetype.subtitle}</p>
+            <p className="text-white/70 mt-2">{band.subtitle}</p>
           </div>
 
           <div className="text-right">
-            <p className="text-sm text-white/70">Compatibility Signal</p>
-            <p className="text-4xl font-extrabold">{pct}%</p>
+            <p className="text-xs text-white/60 mb-1">Vibe Score</p>
+            <div
+              className={`inline-flex items-center justify-center px-4 py-2 rounded-2xl font-semibold bg-gradient-to-r ${band.color} text-black`}
+            >
+              {score}/12
+            </div>
           </div>
         </div>
 
-        <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden mb-8">
-          <div
-            className={`h-full bg-gradient-to-r ${archetype.colorClass} transition-all`}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-
-        <p className="text-lg text-white/80 leading-relaxed mb-8">
-          {archetype.description}
+        <p className="text-white/80 leading-relaxed mt-6">
+          {band.description}
         </p>
 
-        <div className="grid md:grid-cols-2 gap-6 mb-10">
-          <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-            <h2 className="text-xl font-semibold mb-3">Your strengths</h2>
-            <ul className="space-y-2 text-white/80">
-              {archetype.strengths.map((s) => (
-                <li key={s} className="flex gap-2">
-                  <span className="text-cyan-300">•</span>
-                  <span>{s}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-            <h2 className="text-xl font-semibold mb-3">Your growth edges</h2>
-            <ul className="space-y-2 text-white/80">
-              {archetype.growthEdges.map((g) => (
-                <li key={g} className="flex gap-2">
-                  <span className="text-purple-300">•</span>
-                  <span>{g}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {band.tips.map((tip, i) => (
+            <div
+              key={i}
+              className="rounded-2xl bg-white/5 border border-white/10 p-4 text-sm text-white/80"
+            >
+              {tip}
+            </div>
+          ))}
         </div>
 
-        {/* Answers recap */}
-        <div className="bg-white/5 rounded-2xl p-6 border border-white/10 mb-10">
-          <h2 className="text-xl font-semibold mb-4">What you chose</h2>
-          <div className="space-y-3 text-white/80">
-            {Object.entries(answers).map(([qid, ans]) => (
-              <div key={qid} className="flex items-start justify-between gap-4">
-                <p className="font-medium text-white/70">{qid.toUpperCase()}</p>
-                <p className="flex-1">{ans.text}</p>
-                <p className="text-sm text-white/50">+{ans.score}</p>
+        {/* Lumi Voice Reaction */}
+        <div className="mt-8 flex items-center gap-3">
+          <LumiVoiceButton
+            text={`Okay… I’m getting ${band.title} energy. That means your strongest pull is ${band.subtitle}.`}
+          />
+          <p className="text-xs text-white/50">
+            Tap for Lumi’s take
+          </p>
+        </div>
+      </section>
+
+      {/* Actions */}
+      <section className="w-full max-w-2xl mt-8 flex flex-col sm:flex-row gap-3">
+        <button
+          onClick={handleRetake}
+          className="flex-1 px-6 py-3 rounded-2xl font-semibold bg-white/5 border border-white/10 hover:bg-white/10 transition"
+        >
+          Retake Quiz
+        </button>
+
+        <button
+          onClick={handleShare}
+          className="flex-1 px-6 py-3 rounded-2xl font-semibold bg-gradient-to-r from-purple-500 to-cyan-400 text-black hover:opacity-90 transition"
+        >
+          {copied ? "Copied!" : "Share Result"}
+        </button>
+
+        <Link
+          href="/"
+          className="flex-1 px-6 py-3 rounded-2xl font-semibold bg-white text-black text-center hover:opacity-90 transition"
+        >
+          Join Waitlist
+        </Link>
+      </section>
+
+      {/* Optional answer recap */}
+      {answers && (
+        <section className="w-full max-w-2xl mt-10">
+          <h2 className="text-lg font-semibold mb-3 text-white/90">
+            Your Answers
+          </h2>
+          <div className="space-y-3">
+            {Object.entries(answers).map(([qid, opt]) => (
+              <div
+                key={qid}
+                className="rounded-2xl bg-white/5 border border-white/10 p-4"
+              >
+                <p className="text-xs text-white/50 mb-1">
+                  {qid.toUpperCase()}
+                </p>
+                <p className="text-white/85">{opt.text}</p>
               </div>
             ))}
           </div>
-        </div>
-
-        {/* CTAs */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <button
-            onClick={() => {
-              sessionStorage.removeItem("rivva_quiz_score");
-              sessionStorage.removeItem("rivva_quiz_answers");
-              router.push("/quiz");
-            }}
-            className="px-6 py-3 rounded-xl font-semibold bg-white text-black hover:bg-white/90 transition"
-          >
-            Retake Quiz
-          </button>
-
-          <button
-            onClick={() => router.push("/")}
-            className="px-6 py-3 rounded-xl font-semibold bg-white/10 border border-white/20 hover:bg-white/15 transition"
-          >
-            Back Home
-          </button>
-        </div>
-
-        <p className="text-xs text-white/50 mt-6">
-          This is an early Lumi signal — your full compatibility map becomes more
-          accurate once you’re using Rivva.
-        </p>
-      </div>
+        </section>
+      )}
     </main>
   );
 }
