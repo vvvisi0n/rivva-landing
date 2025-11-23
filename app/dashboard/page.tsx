@@ -5,6 +5,8 @@ import Link from "next/link";
 import LumiOrb from "@/components/LumiOrb";
 import TypingBubble from "@/components/TypingBubble";
 import BlueprintCard from "@/components/BlueprintCard";
+import ConnectionForecastCard from "@/components/ConnectionForecastCard";
+import MatchCard from "@/components/MatchCard";
 
 type Profile = {
   name: string;
@@ -88,6 +90,131 @@ function getTier(score: number) {
   return TIERS.find((t) => score >= t.min && score <= t.max) ?? TIERS[0];
 }
 
+function buildForecast(tierTitle: string, intent?: string) {
+  const base = {
+    headline: "",
+    energy: "",
+    focus: [] as string[],
+    greenFlags: [] as string[],
+    redFlags: [] as string[],
+    lumiNote: "",
+  };
+
+  if (tierTitle === "Spark Seeker") {
+    base.headline = "You’re magnetic right now — but you need someone who can *stay steady*.";
+    base.energy =
+      "Your vibe thrives on momentum and chemistry. The right match won’t just excite you — they’ll also ground you when the high fades.";
+    base.focus = [
+      "Fast emotional resonance",
+      "Playful banter + depth balance",
+      "Strong personality alignment",
+    ];
+    base.greenFlags = [
+      "Consistent effort without pressure",
+      "Curiosity about your mind, not just looks",
+      "Matches your pace naturally",
+    ];
+    base.redFlags = [
+      "Love-bombing early",
+      "Inconsistent communication",
+      "Only surface-level flirting",
+    ];
+    base.lumiNote =
+      "You don’t need a spark that burns out — you need a flame that *holds*.";
+  }
+
+  if (tierTitle === "Grounded Connector") {
+    base.headline =
+      "You’re in a season of clarity — your best matches will feel naturally ‘right’.";
+    base.energy =
+      "You’re tuned into alignment and emotional maturity. The right person won’t feel like a puzzle — they’ll feel like peace *plus* attraction.";
+    base.focus = [
+      "Values alignment",
+      "Stable communication patterns",
+      "Effort that feels mutual",
+    ];
+    base.greenFlags = [
+      "Direct, calm communication",
+      "Emotional accountability",
+      "Respects your boundaries",
+    ];
+    base.redFlags = [
+      "Hot/cold behavior",
+      "Avoiding feelings",
+      "Making you carry the connection",
+    ];
+    base.lumiNote =
+      "Keep trusting your internal ‘fit’ radar — it’s sharp.";
+  }
+
+  if (tierTitle === "Deep Bond Builder") {
+    base.headline =
+      "You’re wired for real intimacy — and your next match should *earn* your depth.";
+    base.energy =
+      "You’re looking for emotional safety + meaning. The right match won’t rush you or drain you — they’ll meet you where you are and grow with you.";
+    base.focus = [
+      "Emotional safety",
+      "Consistency over intensity",
+      "Depth + mutual healing",
+    ];
+    base.greenFlags = [
+      "Warm, steady presence",
+      "Doesn’t fear emotional talks",
+      "Shows care in small ways",
+    ];
+    base.redFlags = [
+      "Emotional unavailability",
+      "Overly guarded or dismissive",
+      "Pushes intimacy too fast",
+    ];
+    base.lumiNote =
+      "Your depth is rare. Don’t offer it to someone who only wants the surface.";
+  }
+
+  // tweak by intent
+  if (intent?.toLowerCase().includes("casual")) {
+    base.lumiNote += " Since you’re leaning casual, keep it light but still respect your standards.";
+  }
+  if (intent?.toLowerCase().includes("serious")) {
+    base.lumiNote += " Because you want something real, prioritize consistency over charm.";
+  }
+
+  return base;
+}
+
+const MOCK_MATCHES = [
+  {
+    id: "m1",
+    name: "Ari",
+    age: 28,
+    city: "Brooklyn, NY",
+    vibe:
+      "Warm, playful, and emotionally present. Loves deep talks but keeps things fun.",
+    tags: ["emotionally steady", "fun energy", "intentional"],
+    compatibility: 88,
+  },
+  {
+    id: "m2",
+    name: "Sam",
+    age: 31,
+    city: "Atlanta, GA",
+    vibe:
+      "Low ego, high curiosity. Communicates clearly and makes things feel easy.",
+    tags: ["great communicator", "secure vibe", "values-led"],
+    compatibility: 82,
+  },
+  {
+    id: "m3",
+    name: "Jo",
+    age: 27,
+    city: "Toronto, CA",
+    vibe:
+      "Quiet confidence. Shows love through consistency and small thoughtful gestures.",
+    tags: ["slow-burn", "loyal", "gentle energy"],
+    compatibility: 79,
+  },
+];
+
 export default function DashboardPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [score, setScore] = useState<number | null>(null);
@@ -108,6 +235,11 @@ export default function DashboardPage() {
     if (score == null) return null;
     return getTier(score);
   }, [score]);
+
+  const forecast = useMemo(() => {
+    if (!tier) return null;
+    return buildForecast(tier.title, profile?.intent);
+  }, [tier, profile?.intent]);
 
   return (
     <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center px-6 py-14">
@@ -151,7 +283,36 @@ export default function DashboardPage() {
           <BlueprintCard tier={tier} score={score} maxScore={MAX_SCORE} />
         )}
 
-        {/* Snapshot (pulling answers lightly) */}
+        {/* Forecast */}
+        {forecast && (
+          <ConnectionForecastCard forecast={forecast} />
+        )}
+
+        {/* Mock matches */}
+        {tier && (
+          <section className="rounded-3xl bg-white/5 border border-white/10 p-6 md:p-7 shadow-xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl md:text-2xl font-bold">
+                Your first Rivva matches
+              </h3>
+              <span className="text-xs text-white/50">
+                Mock data (Phase 3 = real)
+              </span>
+            </div>
+
+            <p className="text-white/70 mt-2 mb-5">
+              Based on your blueprint, here are the kinds of people you’ll click with.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {MOCK_MATCHES.map((m) => (
+                <MatchCard key={m.id} match={m} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Snapshot */}
         {answers && (
           <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl">
             <h3 className="text-lg font-semibold mb-3">Quick vibe snapshot</h3>
@@ -185,11 +346,10 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Next Feature Tease */}
+        {/* Tease */}
         <div className="rounded-3xl bg-gradient-to-r from-purple-500/10 to-cyan-400/5 border border-white/10 p-6">
           <p className="text-white/80 text-sm">
-            Next up: I’ll generate your first Rivva matches and show a “connection forecast”
-            based on your blueprint.
+            Next up: turn these mock matches into real swipable profiles with filters + chat.
           </p>
         </div>
       </div>
