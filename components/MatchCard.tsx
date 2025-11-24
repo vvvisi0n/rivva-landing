@@ -1,56 +1,68 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Match } from "@/lib/matches";
+import { isLiked, toggleLike } from "@/lib/likes";
 
 export default function MatchCard({ match }: { match: Match }) {
-  const [open, setOpen] = useState(false);
+  const [liked, setLiked] = useState(false);
+
+  useEffect(() => {
+    setLiked(isLiked(match.id));
+  }, [match.id]);
+
+  function onLike(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setLiked(toggleLike(match.id));
+  }
 
   return (
-    <div className="rounded-3xl bg-white/5 border border-white/10 p-5 shadow-xl hover:bg-white/10 transition">
+    <Link
+      href={`/matches/${match.id}`}
+      className="group block rounded-3xl bg-white/5 border border-white/10 p-4 hover:bg-white/10 transition shadow-xl"
+    >
       <div className="flex items-center gap-4">
-        {/* avatar circle */}
-        <div className="h-14 w-14 rounded-full bg-gradient-to-br from-purple-500 to-cyan-400 flex items-center justify-center text-black font-bold text-lg">
-          {match.name[0]}
-        </div>
-
-        <div className="flex-1">
-          <p className="text-lg font-semibold">{match.name}</p>
-          <p className="text-sm text-white/60">{match.city}</p>
-          <p className="text-xs text-white/50 mt-1">
-            vibe: <span className="text-white/80">{match.vibe}</span>
+        <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-purple-500/40 to-cyan-400/40 border border-white/10" />
+        <div className="flex-1 text-left">
+          <p className="text-lg font-semibold">
+            {match.name}, {match.age}
           </p>
+          <p className="text-sm text-white/60">{match.city}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {match.tags.map((t) => (
+              <span
+                key={t}
+                className="text-xs px-2 py-1 rounded-full bg-black/40 border border-white/10 text-white/80"
+              >
+                {t}
+              </span>
+            ))}
+          </div>
         </div>
 
-        <Link
-          href={`/chat/${match.id}`}
-          className="px-4 py-2 rounded-xl bg-white text-black font-semibold text-sm hover:bg-white/90 transition"
+        <button
+          onClick={onLike}
+          className={`shrink-0 px-3 py-2 rounded-full text-xs font-semibold border transition
+            ${
+              liked
+                ? "bg-white text-black border-white"
+                : "bg-white/5 text-white border-white/10 hover:bg-white/10"
+            }`}
+          aria-label="Like match"
         >
-          Chat
-        </Link>
+          {liked ? "Liked ✓" : "Like"}
+        </button>
       </div>
 
-      {/* Lumi explain */}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="mt-4 text-xs text-purple-200 hover:text-purple-100 transition"
-      >
-        {open ? "Hide Lumi’s read ↑" : "Why Lumi thinks this match fits ↓"}
-      </button>
+      <p className="text-sm text-white/70 mt-3 line-clamp-2">
+        {match.bio}
+      </p>
 
-      {open && (
-        <div className="mt-3 rounded-2xl bg-black/30 border border-white/10 p-4 text-sm text-white/80 leading-relaxed">
-          <p className="mb-2">
-            <span className="text-white font-semibold">Lumi’s read:</span>{" "}
-            {match.lumiWhy}
-          </p>
-          <p className="text-xs text-white/50">
-            This is a soft signal based on vibe alignment + your quiz tier. You
-            stay in control.
-          </p>
-        </div>
-      )}
-    </div>
+      <p className="text-xs text-purple-200 mt-3 opacity-0 group-hover:opacity-100 transition">
+        View profile →
+      </p>
+    </Link>
   );
 }

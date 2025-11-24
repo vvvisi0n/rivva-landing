@@ -1,81 +1,71 @@
-export type ChatFrom = "you" | "them" | "lumi";
-
-export type ChatMessage = {
-  id: string;
-  from: ChatFrom;
-  text: string;
-  ts: number;
-};
-
 export type Match = {
   id: string;
   name: string;
+  age: number;
   city: string;
-  vibe: string; // "grounded" | "spark" | "deep" | etc
-  lumiWhy: string;
+  bio: string;
+  prompts: { q: string; a: string }[];
+  tags: string[];
+  vibe: "spark" | "steady" | "deep" | "grounded";
+  photos: string[]; // for now can be placeholders
 };
 
-const MATCHES: Match[] = [
+export const MOCK_MATCHES: Match[] = [
   {
-    id: "maya",
-    name: "Maya",
+    id: "m1",
+    name: "Amina",
+    age: 28,
     city: "Brooklyn, NY",
+    bio: "Soft life energy with a sharp mind. I love long walks, jazz, and people who communicate clearly.",
+    prompts: [
+      { q: "Ideal Sunday", a: "Coffee, farmer’s market, then a movie I’ll over-analyze." },
+      { q: "Green flag", a: "Consistency without games." },
+      { q: "I value", a: "Emotional honesty + laughter." },
+    ],
+    tags: ["Warm", "Curious", "Grounded"],
     vibe: "grounded",
-    lumiWhy:
-      "You both lead with calm clarity. Her pace + affection style matches your need for consistency, which usually creates emotional safety early.",
+    photos: ["/placeholders/1.jpg", "/placeholders/2.jpg"],
   },
   {
-    id: "aden",
-    name: "Aden",
-    city: "Washington, DC",
-    vibe: "deep",
-    lumiWhy:
-      "High alignment on values-first connection. You tend to open through conversation, and he stays present in talk-heavy intimacy.",
-  },
-  {
-    id: "zoe",
-    name: "Zoe",
-    city: "Austin, TX",
-    vibe: "spark",
-    lumiWhy:
-      "Your profile shows warmth + playful curiosity. She brings lightness without being shallow — good for keeping momentum alive.",
-  },
-  {
-    id: "samir",
-    name: "Samir",
+    id: "m2",
+    name: "Kwame",
+    age: 31,
     city: "Atlanta, GA",
+    bio: "Big on family, big on future. I build things, love Afrobeats, and don’t do chaos.",
+    prompts: [
+      { q: "I’m known for", a: "Showing up when it matters." },
+      { q: "Best date", a: "Trying something new together." },
+    ],
+    tags: ["Steady", "Playful", "Builder"],
     vibe: "steady",
-    lumiWhy:
-      "You respond best to emotionally consistent people. His steady style reduces friction and supports long-term trust building.",
+    photos: ["/placeholders/3.jpg"],
+  },
+  {
+    id: "m3",
+    name: "Zara",
+    age: 26,
+    city: "Chicago, IL",
+    bio: "If we can talk for hours and still want more time, we’re good.",
+    prompts: [
+      { q: "My edge", a: "I read energy fast." },
+      { q: "Love looks like", a: "Safety + passion in the same room." },
+    ],
+    tags: ["Deep", "Romantic", "Intense"],
+    vibe: "deep",
+    photos: ["/placeholders/4.jpg"],
+  },
+  {
+    id: "m4",
+    name: "Tobi",
+    age: 29,
+    city: "Dallas, TX",
+    bio: "Flirty but intentional. I want a best friend with chemistry.",
+    prompts: [
+      { q: "The way to my heart", a: "Make me laugh, then be real." },
+      { q: "Non-negotiable", a: "Respect." },
+    ],
+    tags: ["Spark", "Funny", "Bold"],
+    vibe: "spark",
+    photos: ["/placeholders/5.jpg"],
   },
 ];
-
-export function getMatches() {
-  return MATCHES;
-}
-
-export function getMatch(id: string) {
-  return MATCHES.find((m) => m.id === id) ?? null;
-}
-
-export function getChatSeed(id: string): ChatMessage[] {
-  const match = getMatch(id);
-  if (!match) return [];
-
-  const now = Date.now();
-
-  return [
-    {
-      id: crypto.randomUUID(),
-      from: "lumi",
-      text: `Quick read: ${match.lumiWhy}`,
-      ts: now - 3000,
-    },
-    {
-      id: crypto.randomUUID(),
-      from: "them",
-      text: "Hey 🙂 glad we matched. What kinda connection are you looking for?",
-      ts: now - 2000,
-    },
-  ];
-}
