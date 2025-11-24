@@ -9,11 +9,18 @@ import LumiOrb from "@/components/LumiOrb";
 import ChatBubble from "@/components/ChatBubble";
 import LumiOpeners from "@/components/LumiOpeners";
 import LumiVoiceButton from "@/components/LumiVoiceButton";
+import LumiRewriteButton from "@/components/LumiRewriteButton";
 import ChemistryMeter from "@/components/ChemistryMeter";
 import MatchTyping from "@/components/MatchTyping";
 
 import { MOCK_MATCHES, type Match } from "@/lib/matches";
-import { addMsg, loadChat, type ChatMsg } from "@/lib/chatStore";
+import {
+  addMsg,
+  loadChat,
+  updateMsg,
+  type ChatMsg,
+  type ReactionKey,
+} from "@/lib/chatStore";
 import { simulateMatchReply, computeChemistry } from "@/lib/chatSim";
 
 function uid() {
@@ -72,6 +79,7 @@ export default function ChatPage() {
       from: "me",
       text: trimmed,
       ts: Date.now(),
+      reactions: {},
     };
 
     let next = addMsg(match.id, myMsg);
@@ -87,9 +95,10 @@ export default function ChatPage() {
           from: "lumi",
           text:
             myCount === 1
-              ? `Nice opener. Keep it light and curious — don’t over-explain yet.`
-              : `You’re doing well. Try a follow-up that invites a story.`,
+              ? "Nice opener. Keep it light and curious — don’t over-explain yet."
+              : "You’re doing well. Try a follow-up that invites a story.",
           ts: Date.now(),
+          reactions: {},
         };
         next = addMsg(match.id, nudge);
         setMsgs(next);
@@ -107,11 +116,24 @@ export default function ChatPage() {
         from: "match",
         text: replyText,
         ts: Date.now(),
+        reactions: {},
       };
       next = addMsg(match.id, replyMsg);
       setMsgs(next);
       setMatchTyping(false);
     }, delay);
+  }
+
+  function onReact(msg: ChatMsg, key: ReactionKey) {
+    const current = msg.reactions?.[key] || 0;
+    const updated = {
+      reactions: {
+        ...(msg.reactions || {}),
+        [key]: current + 1,
+      },
+    };
+    const next = updateMsg(match.id, msg.id, updated);
+    setMsgs(next);
   }
 
   return (
@@ -127,7 +149,10 @@ export default function ChatPage() {
           </button>
 
           <div className="flex items-center gap-3">
-            <Link href={`/matches/${match.id}`} className="text-sm hover:underline">
+            <Link
+              href={`/matches/${match.id}`}
+              className="text-sm hover:underline"
+            >
               {match.name}
             </Link>
             <div className="scale-75">
@@ -149,7 +174,7 @@ export default function ChatPage() {
         )}
 
         {/* Messages */}
-        <section className="max-w-3xl w-full mx-auto flex-1 mt-4 space-y-3 overflow-y-auto pb-28">
+        <section className="max-w-3xl w-full mx-auto flex-1 mt-4 space-y-3 overflow-y-auto pb-32">
           {msgs.length === 0 && (
             <p className="text-center text-white/40 text-sm mt-10">
               Say hi to {match.name}.
@@ -159,9 +184,9 @@ export default function ChatPage() {
           {msgs.map((m) => (
             <ChatBubble
               key={m.id}
-              from={m.from}
-              text={m.text}
+              msg={m}
               time={prettyTime(m.ts)}
+              onReact={onReact}
             />
           ))}
 
@@ -187,16 +212,15 @@ export default function ChatPage() {
               disabled={matchTyping}
             />
 
-            {/* Voice */}
-            <div className="shrink-0">
-              <LumiVoiceButton
-                onTranscript={(t) =>
-                  setText((prev) => (prev ? prev + " " + t : t))
-                }
-                disabled={matchTyping}
-                prompt={`Speak your message to ${match.name}.`}
-              />
-            </div>
+            <LumiRewriteButton draft={text} onRewrite={setText} disabled={matchTyping} />
+
+            <LumiVoiceButton
+              onTranscript={(t) =>
+                setText((prev) => (prev ? prev + " " + t : t))
+              }
+              disabled={matchTyping}
+              prompt={`Speak your message to ${match.name}.`}
+            />
 
             <button
               onClick={() => sendMessage(text)}

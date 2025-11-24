@@ -1,95 +1,118 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Props = {
-  text: string;
+  onTranscript: (text: string) => void;
   className?: string;
 };
 
-export default function LumiVoiceButton({ text, className = "" }: Props) {
-  const [supported, setSupported] = useState(false);
-  const [speaking, setSpeaking] = useState(false);
-  const utterRef = useRef<SpeechSynthesisUtterance | null>(null);
+export default function LumiVoiceButton({ onTranscript, className = "" }: Props) {
+  const recRef = useRef<SpeechRecognition | null>(null);
+  const [supported, setSupported] = useState(true);
+  const [listening, setListening] = useState(false);
+  const [interim, setInterim] = useState("");
 
   useEffect(() => {
-    setSupported(
-      typeof window !== "undefined" &&
-        "speechSynthesis" in window &&
-        "SpeechSynthesisUtterance" in window
-    );
-  }, []);
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-  const intros = useMemo(
-    () => [
-      "Okay, here’s what I’m noticing.",
-      "Let me give you a quick read.",
-      "Alright… here’s the vibe I’m getting.",
-      "Here’s the simple truth.",
-      "Wanna hear my take?",
-    ],
-    []
-  );
-
-  function pickIntro() {
-    return intros[Math.floor(Math.random() * intros.length)];
-  }
-
-  function speak() {
-    if (!supported) return;
-
-    const synth = window.speechSynthesis;
-    if (speaking) {
-      synth.cancel();
-      setSpeaking(false);
+    if (!SpeechRecognition) {
+      setSupported(false);
       return;
     }
 
-    synth.cancel();
+    const rec: SpeechRecognition = new SpeechRecognition();
+    recRef.current = rec;
 
-    const intro = pickIntro();
-    const full = `${intro} ${text}`;
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.lang = "en-US";
 
-    const utter = new SpeechSynthesisUtterance(full);
+    rec.onstart = () => {
+      setListening(true);
+      setInterim("");
+    };
 
-    // softer, more human pacing
-    utter.rate = 0.95;
-    utter.pitch = 1.08;
-    utter.volume = 1;
+    rec.onend = () => {
+      setListening(false);
+      setInterim("");
+    };
 
-    // try to prefer a natural female voice if present
-    const voices = synth.getVoices();
-    const preferred =
-      voices.find((v) =>
-        /female|woman|samantha|aria|jenny|zira|serena/i.test(v.name)
-      ) || voices.find((v) => /en-US|en-GB/i.test(v.lang));
+    rec.onerror = () => {
+      setListening(false);
+      setInterim("");
+    };
 
-    if (preferred) utter.voice = preferred;
+    rec.onresult = (e: SpeechRecognitionEvent) => {
+      let finalText = "";
+      let interimText = "";
 
-    utter.onstart = () => setSpeaking(true);
-    utter.onend = () => setSpeaking(false);
-    utter.onerror = () => setSpeaking(false);
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i];
+        if (r.isFinal) finalText += r[0].transcript;
+        else interimText += r[0].transcript;
+      }
 
-    utterRef.current = utter;
-    synth.speak(utter);
+      if (interimText) setInterim(interimText.trim());
+
+      if (finalText.trim()) {
+        onTranscript(finalText.trim());
+        setInterim("");
+      }
+    };
+  }, [onTranscript]);
+
+  function toggle() {
+    if (!recRef.current) return;
+    if (listening) {
+      recRef.current.stop();
+    } else {
+      try {
+        recRef.current.start();
+      } catch {
+        // ignore double-start edge case
+      }
+    }
   }
 
-  if (!supported) return null;
+  if (!supported) {
+    return (
+      <button
+        disabled
+        className={`px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white/50 ${className}`}
+        title="Voice not supported in this browser"
+      >
+        Voice N/A
+      </button>
+    );
+  }
 
   return (
-    <button
-      onClick={speak}
-      className={`inline-flex items-center gap-2 text-xs px-3 py-2 rounded-full border transition
-      ${
-        speaking
-          ? "bg-white text-black border-white"
-          : "bg-white/5 text-white border-white/10 hover:bg-white/10"
-      } ${className}`}
-      aria-label="Play Lumi voice"
-      title={speaking ? "Stop Lumi" : "Play Lumi voice"}
-    >
-      <span className="text-base leading-none">{speaking ? "■" : "▶︎"}</span>
-      <span>{speaking ? "Stop Lumi" : "Lumi voice"}</span>
-    </button>
+    <div className={`relative ${className}`}>
+      <button
+        onClick={toggle}
+        className={`px-3 py-2 rounded-xl border text-xs font-semibold transition flex items-center gap-2
+          ${
+            listening
+              ? "bg-purple-500/20 border-purple-400/40 text-white"
+              : "bg-white/5 border-white/10 text-white/80 hover:bg-white/10"
+          }`}
+        aria-pressed={listening}
+      >
+        <span
+          className={`inline-block w-2 h-2 rounded-full ${
+            listening ? "bg-cyan-300 animate-pulse" : "bg-white/40"
+          }`}
+        />
+        {listening ? "Listening…" : "Lumi Voice"}
+      </button>
+
+      {listening && interim && (
+        <div className="absolute -top-10 left-0 right-0 mx-auto w-max max-w-[240px] px-3 py-1 text-[11px] rounded-full bg-white/10 border border-white/10 text-white/80 backdrop-blur">
+          {interim}
+        </div>
+      )}
+    </div>
   );
 }
