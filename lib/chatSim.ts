@@ -1,80 +1,68 @@
-export type ChatRole = "you" | "match" | "lumi";
+import type { ChatMsg } from "@/lib/chatStore";
+import type { Match } from "@/lib/matches";
 
-export type ChatMsg = {
-  id: string;
-  role: ChatRole;
-  text: string;
-  ts: number;
+const REPLIES: Record<Match["vibe"], string[]> = {
+  spark: [
+    "Haha I love that. Tell me more 👀",
+    "Okay wait that’s actually adorable.",
+    "You’re fun. I’m into this already.",
+    "That’s a good question — I’d say…",
+  ],
+  steady: [
+    "That makes sense. I appreciate that.",
+    "I like how you think about it.",
+    "That’s honestly refreshing to hear.",
+    "I’m with you on that. What led you there?",
+  ],
+  deep: [
+    "Oof, that’s real. I respect the honesty.",
+    "I’ve thought about that too. Here’s my take…",
+    "That’s deep — I feel that.",
+    "I’d love to unpack that more with you.",
+  ],
+  grounded: [
+    "I’m into calm energy like that.",
+    "That sounds like a good life.",
+    "I like your perspective.",
+    "Yeah, that’s a green flag for me too.",
+  ],
 };
 
-const REPLIES = [
-  "Haha I like that 😄",
-  "Wait that’s actually really cute.",
-  "Okay, I’m listening… what’s the story?",
-  "That’s a green flag answer.",
-  "I’m not gonna lie, that made me smile.",
-  "You seem like trouble… in a good way 😏",
-  "That’s interesting—tell me more.",
-  "I feel like we’d vibe in real life.",
-  "What’s something you’re really into lately?",
-  "I respect that. What made you feel that way?",
-];
-
-const FOLLOWUPS = [
-  "What are you doing this weekend?",
-  "What’s your ideal first date?",
-  "What’s your love language?",
-  "What’s a small thing that always makes you happy?",
-  "What’s something you want more of in your life?",
-];
-
-function pick<T>(arr: T[]) {
-  return arr[Math.floor(Math.random() * arr.length)];
+function pickOne(arr: string[], seed: number) {
+  return arr[seed % arr.length];
 }
 
-export function generateReply(userText: string): string {
-  const t = userText.toLowerCase();
+export function simulateMatchReply(match: Match, msgs: ChatMsg[]) {
+  const myMsgs = msgs.filter((m) => m.from === "me");
+  const lastMy = myMsgs[myMsgs.length - 1];
 
-  if (t.includes("hi") || t.includes("hey") || t.includes("hello")) {
-    return pick([
-      "Heyyy 😊 what’s your vibe today?",
-      "Hi! I’m glad you messaged. How’s your day going?",
-      "Hey stranger 😄 what’s up?",
-    ]);
+  const seed = lastMy.text.length + myMsgs.length;
+  const base = pickOne(REPLIES[match.vibe], seed);
+
+  // light personalization
+  if (lastMy.text.includes("?")) {
+    return base + " What about you?";
   }
-
-  if (t.includes("?")) {
-    return pick([
-      "Ooo good question… I’d say " + pick(["yes", "maybe", "absolutely", "sometimes"]) + ". You?",
-      pick(REPLIES),
-    ]);
+  if (lastMy.text.length < 24) {
+    return base + " 😄";
   }
-
-  if (t.includes("music") || t.includes("song") || t.includes("artist")) {
-    return pick([
-      "Music is a big deal to me. What have you been looping lately?",
-      "Okay taste check: what’s your top 3 right now?",
-    ]);
-  }
-
-  if (t.includes("food") || t.includes("restaurant") || t.includes("eat")) {
-    return pick([
-      "I’m a foodie lowkey. What’s your go-to comfort meal?",
-      "Okay but what cuisine could you eat forever?",
-    ]);
-  }
-
-  // default: warm + curious
-  return pick([
-    pick(REPLIES),
-    pick(REPLIES) + " " + pick(FOLLOWUPS),
-  ]);
+  return base;
 }
 
-export function lumiNudge(matchName: string): string {
-  return pick([
-    `Try something warm + specific. Ask ${matchName} about a moment they felt most alive.`,
-    `Lean playful: “You seem like someone with a secret talent… what is it?”`,
-    `Ask a soft opener: “What kind of connection are you craving right now?”`,
-  ]);
+export function computeChemistry(msgs: ChatMsg[]) {
+  // simple momentum heuristic
+  const me = msgs.filter((m) => m.from === "me").length;
+  const match = msgs.filter((m) => m.from === "match").length;
+
+  const questionMarks = msgs.reduce(
+    (n, m) => n + (m.text.includes("?") ? 1 : 0),
+    0
+  );
+  const longMsgs = msgs.reduce((n, m) => n + (m.text.length > 80 ? 1 : 0), 0);
+
+  let score = 8 * me + 6 * match + 4 * questionMarks + 3 * longMsgs;
+
+  // cap and smooth
+  if (me + match > 10) score += 10;
+  return Math.max(0, Math.min(100, score));
 }

@@ -9,9 +9,12 @@ import LumiOrb from "@/components/LumiOrb";
 import ChatBubble from "@/components/ChatBubble";
 import LumiOpeners from "@/components/LumiOpeners";
 import LumiVoiceButton from "@/components/LumiVoiceButton";
+import ChemistryMeter from "@/components/ChemistryMeter";
+import MatchTyping from "@/components/MatchTyping";
 
 import { MOCK_MATCHES, type Match } from "@/lib/matches";
 import { addMsg, loadChat, type ChatMsg } from "@/lib/chatStore";
+import { simulateMatchReply, computeChemistry } from "@/lib/chatSim";
 
 function uid() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -37,6 +40,8 @@ export default function ChatPage() {
 
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
   const [text, setText] = useState("");
+  const [matchTyping, setMatchTyping] = useState(false);
+
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -46,7 +51,9 @@ export default function ChatPage() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [msgs]);
+  }, [msgs, matchTyping]);
+
+  const chemistry = useMemo(() => computeChemistry(msgs), [msgs]);
 
   if (!match) {
     return (
@@ -58,7 +65,7 @@ export default function ChatPage() {
 
   function sendMessage(content: string) {
     const trimmed = content.trim();
-    if (!trimmed) return;
+    if (!trimmed || matchTyping) return;
 
     const myMsg: ChatMsg = {
       id: uid(),
@@ -86,8 +93,25 @@ export default function ChatPage() {
         };
         next = addMsg(match.id, nudge);
         setMsgs(next);
-      }, 700);
+      }, 650);
     }
+
+    // Simulate match typing + reply
+    setMatchTyping(true);
+    const delay = 900 + Math.min(1200, trimmed.length * 18);
+
+    setTimeout(() => {
+      const replyText = simulateMatchReply(match, next);
+      const replyMsg: ChatMsg = {
+        id: uid(),
+        from: "match",
+        text: replyText,
+        ts: Date.now(),
+      };
+      next = addMsg(match.id, replyMsg);
+      setMsgs(next);
+      setMatchTyping(false);
+    }, delay);
   }
 
   return (
@@ -111,6 +135,11 @@ export default function ChatPage() {
             </div>
           </div>
         </header>
+
+        {/* Chemistry meter */}
+        <section className="max-w-3xl w-full mx-auto mt-2">
+          <ChemistryMeter score={chemistry} />
+        </section>
 
         {/* Openers */}
         {msgs.length === 0 && (
@@ -136,6 +165,8 @@ export default function ChatPage() {
             />
           ))}
 
+          {matchTyping && <MatchTyping name={match.name} />}
+
           <div ref={bottomRef} />
         </section>
 
@@ -153,19 +184,29 @@ export default function ChatPage() {
                   sendMessage(text);
                 }
               }}
+              disabled={matchTyping}
             />
 
+            {/* Voice */}
             <div className="shrink-0">
               <LumiVoiceButton
                 onTranscript={(t) =>
                   setText((prev) => (prev ? prev + " " + t : t))
                 }
+                disabled={matchTyping}
+                prompt={`Speak your message to ${match.name}.`}
               />
             </div>
 
             <button
               onClick={() => sendMessage(text)}
-              className="shrink-0 px-5 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition"
+              disabled={matchTyping}
+              className={`shrink-0 px-5 py-3 rounded-xl font-semibold transition
+                ${
+                  matchTyping
+                    ? "bg-white/10 text-white/60 cursor-not-allowed"
+                    : "bg-white text-black hover:bg-white/90"
+                }`}
             >
               Send
             </button>
