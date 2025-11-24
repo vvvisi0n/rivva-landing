@@ -3,6 +3,8 @@
 import Link from "next/link";
 import LumiOrb from "@/components/LumiOrb";
 import { MATCHES } from "@/lib/matches";
+import { loadProfile } from "@/lib/profile";
+import { useMemo } from "react";
 
 const vibeColor: Record<string, string> = {
   spark: "from-pink-400 to-purple-500",
@@ -12,14 +14,26 @@ const vibeColor: Record<string, string> = {
 };
 
 export default function MatchesPage() {
+  const profile = typeof window !== "undefined" ? loadProfile() : null;
+
+  const filtered = useMemo(() => {
+    const tier = profile?.quizTier;
+    if (!tier) return MATCHES;
+    return MATCHES.filter((m) => m.vibe === tier);
+  }, [profile]);
+
   return (
     <main className="min-h-screen bg-[#0b0b14] text-white px-6 py-14">
       <div className="max-w-5xl mx-auto">
         <header className="flex items-center justify-between gap-4 mb-10">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold">Matches</h1>
+            <h1 className="text-3xl md:text-4xl font-bold">
+              Matches{profile?.name ? ` for ${profile.name}` : ""}
+            </h1>
             <p className="text-white/70 mt-1">
-              People Lumi thinks fit your energy.
+              {profile?.quizTier
+                ? `Filtered by your Lumi tier: ${profile.quizTier}`
+                : "People Lumi thinks fit your energy."}
             </p>
           </div>
           <div className="hidden md:block">
@@ -27,8 +41,22 @@ export default function MatchesPage() {
           </div>
         </header>
 
+        {filtered.length === 0 && (
+          <div className="rounded-2xl bg-white/5 border border-white/10 p-6">
+            <p className="text-white/70">
+              No matches in this tier yet. We’ll expand as Rivva grows.
+            </p>
+            <Link
+              href="/quiz"
+              className="inline-block mt-3 text-cyan-300 hover:underline"
+            >
+              Retake Quiz →
+            </Link>
+          </div>
+        )}
+
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {MATCHES.map((m) => (
+          {filtered.map((m) => (
             <Link
               key={m.id}
               href={`/chat/${m.id}`}
@@ -37,12 +65,15 @@ export default function MatchesPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-xl font-semibold">
-                    {m.name} <span className="text-white/60 font-normal">{m.age}</span>
+                    {m.name}{" "}
+                    <span className="text-white/60 font-normal">{m.age}</span>
                   </h2>
                   <p className="text-sm text-white/60 mt-1">{m.city}</p>
                 </div>
 
-                <div className={`text-xs px-3 py-1 rounded-full bg-gradient-to-r ${vibeColor[m.vibe]} text-black font-semibold`}>
+                <div
+                  className={`text-xs px-3 py-1 rounded-full bg-gradient-to-r ${vibeColor[m.vibe]} text-black font-semibold`}
+                >
                   {m.vibe}
                 </div>
               </div>
