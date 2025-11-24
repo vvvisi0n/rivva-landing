@@ -7,8 +7,12 @@ import ChatMessage from "@/components/ChatMessage";
 import LumiChips from "@/components/LumiChips";
 import LumiVoiceButton from "@/components/LumiVoiceButton";
 import OnboardingGate from "@/components/OnboardingGate";
+import CompatibilityMeter from "@/components/CompatibilityMeter";
+import LumiMemoryNote from "@/components/LumiMemoryNote";
 
 import { getMatch, getChatSeed, ChatMessage as Msg } from "@/lib/matches";
+import { loadProfile } from "@/lib/profile";
+import { loadChat, saveChat } from "@/lib/chatStore";
 
 const LUMI_SUGGESTIONS: Record<string, string[]> = {
   maya: [
@@ -38,6 +42,7 @@ const LUMI_NUDGES = [
   "Nice. Clear + warm is your lane.",
   "You’re leading with intention. Keep that.",
   "That line lands. Human, not try-hard.",
+  "I like that. It’s you, not a script.",
 ];
 
 function safeId() {
@@ -45,6 +50,12 @@ function safeId() {
     return crypto.randomUUID();
   }
   return Math.random().toString(36).slice(2);
+}
+
+function computeCompatibility(matchVibe?: string, userTier?: string) {
+  if (!matchVibe || !userTier) return 68;
+  if (matchVibe === userTier) return 92;
+  return 74;
 }
 
 export default function ChatPage() {
@@ -57,18 +68,42 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [lumiThinking, setLumiThinking] = useState(false);
+  const [profileTier, setProfileTier] = useState<string | undefined>(undefined);
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
+  // Load profile tier on client
+  useEffect(() => {
+    try {
+      const p = loadProfile();
+      setProfileTier(p?.quizTier);
+    } catch {}
+  }, []);
+
+  const compatibility = useMemo(
+    () => computeCompatibility(match?.vibe, profileTier),
+    [match?.vibe, profileTier]
+  );
+
+  // Load chat from storage first, otherwise seed
   useEffect(() => {
     if (!id) return;
-    setMessages(getChatSeed(id));
+    const stored = loadChat(id);
+    if (stored.length > 0) {
+      setMessages(stored);
+    } else {
+      const seed = getChatSeed(id);
+      setMessages(seed);
+      saveChat(id, seed);
+    }
   }, [id]);
 
-  // auto-scroll on new messages or thinking bubble
+  // Persist every change to messages
   useEffect(() => {
+    if (!id) return;
+    saveChat(id, messages);
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, lumiThinking]);
+  }, [messages, id, lumiThinking]);
 
   if (!match) {
     return (
@@ -110,7 +145,7 @@ export default function ChatPage() {
     }, 850);
   }
 
-  // safer to key suggestions from match.id
+  // Safer to key suggestions off match.id, not route id
   const suggestions =
     LUMI_SUGGESTIONS[match.id] ?? [
       "Tell me something you’re genuinely excited about lately.",
@@ -121,7 +156,7 @@ export default function ChatPage() {
   return (
     <OnboardingGate>
       <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col">
-        <header className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+        <header className="px-6 py-4 border-b border-white/10 flex items-center justify-between gap-4">
           <button
             onClick={() => router.push("/matches")}
             className="text-sm text-white/70 hover:text-white"
@@ -129,15 +164,23 @@ export default function ChatPage() {
             ← Back
           </button>
 
-          <div className="text-center">
+          <div className="text-center flex flex-col items-center">
             <p className="font-semibold">{match.name}</p>
             <p className="text-xs text-white/50">{match.city}</p>
           </div>
 
-          <div className="scale-75">
-            <LumiOrb />
+          <div className="flex items-center gap-3">
+            <CompatibilityMeter score={compatibility} />
+            <div className="scale-75">
+              <LumiOrb />
+            </div>
           </div>
         </header>
+
+        {/* Lumi memory note */}
+        <div className="px-6">
+          <LumiMemoryNote matchId={match.id} />
+        </div>
 
         <section className="flex-1 px-6 py-5 overflow-y-auto">
           {messages.map((msg) => (
