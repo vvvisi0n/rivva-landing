@@ -1,55 +1,56 @@
 "use client";
 
-type Match = {
-  id: string;
-  name: string;
-  age: number;
-  city: string;
-  vibe: string;
-  tags: string[];
-  compatibility: number; // 0-100
-};
+import Link from "next/link";
+import { useState } from "react";
+import type { Match } from "@/lib/matches";
 
 export default function MatchCard({ match }: { match: Match }) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <div className="rounded-3xl bg-white/5 border border-white/10 p-5 shadow-lg hover:bg-white/10 transition">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h4 className="text-lg font-semibold">
-            {match.name}, {match.age}
-          </h4>
-          <p className="text-sm text-white/60">{match.city}</p>
+    <div className="rounded-3xl bg-white/5 border border-white/10 p-5 shadow-xl hover:bg-white/10 transition">
+      <div className="flex items-center gap-4">
+        {/* avatar circle */}
+        <div className="h-14 w-14 rounded-full bg-gradient-to-br from-purple-500 to-cyan-400 flex items-center justify-center text-black font-bold text-lg">
+          {match.name[0]}
         </div>
 
-        <div className="text-right">
-          <p className="text-xs text-white/50 mb-1">compatibility</p>
-          <p className="text-xl font-bold text-white">
-            {match.compatibility}%
+        <div className="flex-1">
+          <p className="text-lg font-semibold">{match.name}</p>
+          <p className="text-sm text-white/60">{match.city}</p>
+          <p className="text-xs text-white/50 mt-1">
+            vibe: <span className="text-white/80">{match.vibe}</span>
           </p>
         </div>
+
+        <Link
+          href={`/chat/${match.id}`}
+          className="px-4 py-2 rounded-xl bg-white text-black font-semibold text-sm hover:bg-white/90 transition"
+        >
+          Chat
+        </Link>
       </div>
 
-      <p className="text-white/80 mt-3 text-sm leading-relaxed">
-        {match.vibe}
-      </p>
-
-      <div className="flex flex-wrap gap-2 mt-4">
-        {match.tags.map((t) => (
-          <span
-            key={t}
-            className="text-xs px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/75"
-          >
-            {t}
-          </span>
-        ))}
-      </div>
-
+      {/* Lumi explain */}
       <button
-        className="mt-5 w-full px-4 py-2.5 rounded-xl bg-white text-black font-semibold text-sm hover:bg-white/90 transition active:scale-[0.98]"
-        onClick={() => alert("Matches will be interactive in Phase 3.")}
+        onClick={() => setOpen((v) => !v)}
+        className="mt-4 text-xs text-purple-200 hover:text-purple-100 transition"
       >
-        View Match
+        {open ? "Hide Lumi’s read ↑" : "Why Lumi thinks this match fits ↓"}
       </button>
+
+      {open && (
+        <div className="mt-3 rounded-2xl bg-black/30 border border-white/10 p-4 text-sm text-white/80 leading-relaxed">
+          <p className="mb-2">
+            <span className="text-white font-semibold">Lumi’s read:</span>{" "}
+            {match.lumiWhy}
+          </p>
+          <p className="text-xs text-white/50">
+            This is a soft signal based on vibe alignment + your quiz tier. You
+            stay in control.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

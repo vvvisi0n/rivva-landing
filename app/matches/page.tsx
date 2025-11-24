@@ -1,136 +1,78 @@
 "use client";
 
-import Link from "next/link";
-import LumiOrb from "@/components/LumiOrb";
-import OnboardingGate from "@/components/OnboardingGate";
-import { MATCHES } from "@/lib/matches";
-import { loadProfile } from "@/lib/profile";
 import { useMemo, useState } from "react";
-
-const vibeColor: Record<string, string> = {
-  spark: "from-pink-400 to-purple-500",
-  anchor: "from-emerald-400 to-cyan-500",
-  empath: "from-purple-400 to-indigo-500",
-  magnetic: "from-amber-400 to-pink-500",
-};
+import Link from "next/link";
+import MatchCard from "@/components/MatchCard";
+import MatchFilters from "@/components/MatchFilters";
+import OnboardingGate from "@/components/OnboardingGate";
+import { getMatches } from "@/lib/matches";
 
 export default function MatchesPage() {
-  const profile = typeof window !== "undefined" ? loadProfile() : null;
-  const [showAll, setShowAll] = useState(false);
+  const allMatches = getMatches();
+
+  const vibes = useMemo(() => {
+    const set = new Set(allMatches.map((m) => m.vibe));
+    return Array.from(set);
+  }, [allMatches]);
+
+  const [search, setSearch] = useState("");
+  const [vibe, setVibe] = useState("all");
 
   const filtered = useMemo(() => {
-    const tier = profile?.quizTier;
-    if (showAll || !tier) return MATCHES;
-    return MATCHES.filter((m) => m.vibe === tier);
-  }, [profile, showAll]);
+    const s = search.trim().toLowerCase();
+
+    return allMatches.filter((m) => {
+      const matchesSearch =
+        !s ||
+        m.name.toLowerCase().includes(s) ||
+        m.city.toLowerCase().includes(s);
+
+      const matchesVibe = vibe === "all" || m.vibe === vibe;
+
+      return matchesSearch && matchesVibe;
+    });
+  }, [allMatches, search, vibe]);
 
   return (
     <OnboardingGate>
-      <main className="min-h-screen bg-[#0b0b14] text-white px-6 py-14">
-        <div className="max-w-5xl mx-auto">
-          <header className="flex items-center justify-between gap-4 mb-10">
+      <main className="min-h-screen bg-[#0b0b14] text-white px-6 py-12">
+        <section className="max-w-5xl mx-auto">
+          <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold">
-                Matches{profile?.name ? ` for ${profile.name}` : ""}
-              </h1>
-              <p className="text-white/70 mt-1">
-                {profile?.quizTier && !showAll
-                  ? `Filtered by your Lumi tier: ${profile.quizTier}`
-                  : "People Lumi thinks fit your energy."}
+              <h1 className="text-3xl font-bold">Your Matches</h1>
+              <p className="text-white/60 text-sm mt-1">
+                Lumi sorted these by emotional fit — not random swipes.
               </p>
             </div>
-            <div className="hidden md:block">
-              <LumiOrb />
-            </div>
+
+            <Link
+              href="/vibe-check"
+              className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-white/10 border border-white/15 hover:bg-white/15 transition text-sm"
+            >
+              Daily Vibe Check →
+            </Link>
           </header>
 
-          {/* Improve Matches */}
-          <div className="mb-8 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-            <div className="text-sm text-white/70">
-              Want better matches? Lumi gets sharper the more you refine your vibe.
-            </div>
+          <MatchFilters
+            search={search}
+            setSearch={setSearch}
+            vibe={vibe}
+            setVibe={setVibe}
+            vibes={vibes}
+          />
 
-            <div className="flex gap-2">
-              <Link
-                href="/quiz"
-                className="px-4 py-2 rounded-xl bg-white text-black text-sm font-semibold hover:bg-white/90 transition"
-              >
-                Retake Quiz
-              </Link>
-
-              {profile?.quizTier && (
-                <button
-                  onClick={() => setShowAll((s) => !s)}
-                  className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm hover:bg-white/10 transition"
-                >
-                  {showAll ? "Show My Tier Only" : "Show All Tiers"}
-                </button>
-              )}
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+            {filtered.map((m) => (
+              <MatchCard key={m.id} match={m} />
+            ))}
           </div>
 
           {filtered.length === 0 && (
-            <div className="rounded-2xl bg-white/5 border border-white/10 p-6">
-              <p className="text-white/70">
-                No matches in this tier yet. We’ll expand as Rivva grows.
-              </p>
-              <Link
-                href="/quiz"
-                className="inline-block mt-3 text-cyan-300 hover:underline"
-              >
-                Retake Quiz →
-              </Link>
-            </div>
+            <p className="text-white/60 text-sm mt-8">
+              No matches found. Try a different search or vibe.
+            </p>
           )}
-
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.map((m) => (
-              <Link
-                key={m.id}
-                href={`/chat/${m.id}`}
-                className="group rounded-3xl bg-white/5 border border-white/10 p-6 hover:bg-white/10 transition shadow-xl"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h2 className="text-xl font-semibold">
-                      {m.name}{" "}
-                      <span className="text-white/60 font-normal">{m.age}</span>
-                    </h2>
-                    <p className="text-sm text-white/60 mt-1">{m.city}</p>
-                  </div>
-
-                  <div
-                    className={`text-xs px-3 py-1 rounded-full bg-gradient-to-r ${vibeColor[m.vibe]} text-black font-semibold`}
-                  >
-                    {m.vibe}
-                  </div>
-                </div>
-
-                <p className="mt-4 text-white/90 font-medium">{m.headline}</p>
-                <p className="mt-2 text-sm text-white/70 leading-relaxed line-clamp-3">
-                  {m.bio}
-                </p>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {m.tags.map((t) => (
-                    <span
-                      key={t}
-                      className="text-xs text-white/70 bg-white/5 border border-white/10 px-2.5 py-1 rounded-full"
-                    >
-                      {t}
-                    </span>
-                  ))}
-                </div>
-
-                <p className="mt-4 text-xs text-white/50">{m.lastActive}</p>
-
-                <div className="mt-4 text-sm text-cyan-300 opacity-0 group-hover:opacity-100 transition">
-                  Open chat →
-                </div>
-              </Link>
-            ))}
-          </section>
-        </div>
+        </section>
       </main>
     </OnboardingGate>
   );

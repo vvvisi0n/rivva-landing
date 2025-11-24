@@ -1,84 +1,46 @@
 "use client";
 
-type Filters = {
-  minCompat: number;
-  city: string;
-  tag: string;
+type Props = {
+  search: string;
+  setSearch: (v: string) => void;
+  vibe: string;
+  setVibe: (v: string) => void;
+  vibes: string[];
 };
 
 export default function MatchFilters({
-  filters,
-  setFilters,
-  availableCities,
-  availableTags,
-}: {
-  filters: Filters;
-  setFilters: (f: Filters) => void;
-  availableCities: string[];
-  availableTags: string[];
-}) {
+  search,
+  setSearch,
+  vibe,
+  setVibe,
+  vibes,
+}: Props) {
   return (
-    <div className="rounded-3xl bg-white/5 border border-white/10 p-5 md:p-6 shadow-xl">
-      <h3 className="text-lg font-semibold mb-4">Filters</h3>
+    <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
+      {/* Search */}
+      <input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search by name or city..."
+        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-white/40"
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Compatibility */}
-        <label className="text-sm text-white/80">
-          Min compatibility: <span className="font-semibold">{filters.minCompat}%</span>
-          <input
-            type="range"
-            min={50}
-            max={100}
-            step={1}
-            value={filters.minCompat}
-            onChange={(e) =>
-              setFilters({ ...filters, minCompat: Number(e.target.value) })
-            }
-            className="w-full mt-2"
-          />
-        </label>
-
-        {/* City */}
-        <label className="text-sm text-white/80">
-          City
-          <select
-            value={filters.city}
-            onChange={(e) => setFilters({ ...filters, city: e.target.value })}
-            className="w-full mt-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm"
-          >
-            <option value="">Anywhere</option>
-            {availableCities.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        {/* Tag */}
-        <label className="text-sm text-white/80">
-          Vibe tag
-          <select
-            value={filters.tag}
-            onChange={(e) => setFilters({ ...filters, tag: e.target.value })}
-            className="w-full mt-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm"
-          >
-            <option value="">Any vibe</option>
-            {availableTags.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </label>
+      {/* Vibe filter */}
+      <div className="flex gap-2 items-center">
+        <span className="text-xs text-white/60">Vibe</span>
+        <select
+          value={vibe}
+          onChange={(e) => setVibe(e.target.value)}
+          className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500"
+        >
+          <option value="all">All</option>
+          {vibes.map((v) => (
+            <option key={v} value={v}>
+              {v}
+            </option>
+          ))}
+        </select>
       </div>
-
-      <button
-        onClick={() => setFilters({ minCompat: 70, city: "", tag: "" })}
-        className="mt-4 text-xs text-white/70 underline hover:text-white"
-      >
-        Reset filters
-      </button>
     </div>
   );
 }
