@@ -2,106 +2,140 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import OnboardingGate from "@/components/OnboardingGate";
 import LumiOrb from "@/components/LumiOrb";
-import { saveQuizTier } from "@/lib/profile";
+import TypingBubble from "@/components/TypingBubble";
+import { scoreToTier, tierLabel, tierSummary, type QuizTier } from "@/lib/quiz";
 
-type Tier = "spark" | "anchor" | "empath" | "magnetic";
+type StoredAnswers = Record<string, { id: string; text: string; score: number }>;
 
-function tierFromScore(score: number): Tier {
-  if (score >= 10) return "empath";
-  if (score >= 7) return "anchor";
-  if (score >= 4) return "magnetic";
-  return "spark";
-}
-
-const TIER_COPY: Record<Tier, { title: string; body: string }> = {
-  spark: {
-    title: "Spark",
-    body:
-      "You lead with chemistry and momentum. You connect fast when energy is right.",
-  },
-  magnetic: {
-    title: "Magnetic",
-    body:
-      "You’re drawn to presence, humor, and emotional pull. You want a vibe that feels alive.",
-  },
-  anchor: {
-    title: "Anchor",
-    body:
-      "You value stability and intention. You’re looking for something real, not random.",
-  },
-  empath: {
-    title: "Empath",
-    body:
-      "You prioritize emotional safety and depth. You want a relationship that feels like home.",
-  },
-};
+const SETTINGS_KEY = "rivva_settings";
 
 export default function QuizResultsPage() {
   const [score, setScore] = useState<number | null>(null);
+  const [tier, setTier] = useState<QuizTier | null>(null);
+  const [answers, setAnswers] = useState<StoredAnswers | null>(null);
+
+  // tiny "Lumi thinking" for drama
+  const [thinking, setThinking] = useState(true);
 
   useEffect(() => {
-    const raw = sessionStorage.getItem("rivva_quiz_score");
-    const value = raw ? Number(raw) : null;
-    setScore(value);
+    try {
+      const s = sessionStorage.getItem("rivva_quiz_score");
+      const a = sessionStorage.getItem("rivva_quiz_answers");
+      const parsedScore = s ? Number(s) : 0;
+      const parsedAnswers = a ? (JSON.parse(a) as StoredAnswers) : null;
 
-    if (value !== null && !Number.isNaN(value)) {
-      const tier = tierFromScore(value);
-      saveQuizTier(tier);
+      const t = scoreToTier(parsedScore);
+
+      setScore(parsedScore);
+      setTier(t);
+      setAnswers(parsedAnswers);
+
+      // persist tier into settings for later personalization
+      try {
+        const raw = localStorage.getItem(SETTINGS_KEY);
+        const settings = raw ? JSON.parse(raw) : {};
+        localStorage.setItem(
+          SETTINGS_KEY,
+          JSON.stringify({ ...settings, tier: t })
+        );
+      } catch {}
+
+      setTimeout(() => setThinking(false), 900);
+    } catch {
+      setThinking(false);
+      setScore(0);
+      setTier("spark");
     }
   }, []);
 
-  const tier = useMemo(() => {
-    if (score === null || Number.isNaN(score)) return null;
-    return tierFromScore(score);
-  }, [score]);
+  const summary = useMemo(() => {
+    if (!tier) return "";
+    return tierSummary(tier);
+  }, [tier]);
 
-  if (tier === null) {
+  if (score === null || tier === null) {
     return (
       <main className="min-h-screen bg-[#0b0b14] text-white flex items-center justify-center">
-        <p className="text-white/70">No quiz results found.</p>
+        <TypingBubble label="Lumi is reading your emotional blueprint…" />
       </main>
     );
   }
 
-  const copy = TIER_COPY[tier];
-
   return (
-    <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center px-6 py-16">
-      <div className="mb-8">
-        <LumiOrb />
-      </div>
+    <OnboardingGate>
+      <main className="min-h-screen bg-[#0b0b14] text-white px-6 py-16">
+        <section className="max-w-3xl mx-auto text-center">
+          <div className="flex justify-center mb-6">
+            <LumiOrb />
+          </div>
 
-      <div className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-3xl p-10 shadow-xl text-center">
-        <h1 className="text-4xl font-bold mb-2">
-          Your Lumi Tier: <span className="text-cyan-300">{copy.title}</span>
-        </h1>
-        <p className="text-white/70 mb-8">{copy.body}</p>
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">
+            Your Lumi Compatibility Read
+          </h1>
 
-        <div className="rounded-2xl bg-white/5 border border-white/10 p-6 text-left">
-          <h2 className="text-lg font-semibold mb-2">What this means</h2>
-          <p className="text-sm text-white/70 leading-relaxed">
-            Lumi will now tailor your matches and conversation guidance to your tier.
-            You’ll see people who align with your emotional rhythm, not just photos.
-          </p>
-        </div>
+          {thinking ? (
+            <div className="mt-6 flex justify-center">
+              <TypingBubble label="Comparing patterns… syncing vibe… almost there." />
+            </div>
+          ) : (
+            <>
+              <p className="text-white/60 text-sm mt-2">
+                Score: {score} / 12
+              </p>
 
-        <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-          <Link
-            href="/onboarding"
-            className="px-6 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition"
-          >
-            Continue Setup
-          </Link>
+              <div className="mt-7 rounded-3xl bg-white/5 border border-white/10 p-7 shadow-xl text-left">
+                <p className="text-sm text-white/60 mb-1">You are a</p>
+                <p className="text-2xl font-bold">
+                  {tierLabel(tier)}
+                </p>
+                <p className="text-white/75 mt-3 leading-relaxed">
+                  {summary}
+                </p>
 
-          <Link
-            href="/quiz"
-            className="px-6 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition"
-          >
-            Retake Quiz
-          </Link>
-        </div>
-      </div>
-    </main>
+                {answers && (
+                  <div className="mt-5 text-sm text-white/70">
+                    <p className="font-semibold text-white mb-2">
+                      Your answers
+                    </p>
+                    <ul className="space-y-2">
+                      {Object.entries(answers).map(([qid, ans]) => (
+                        <li key={qid} className="rounded-xl bg-black/30 border border-white/10 p-3">
+                          {ans.text}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+                <Link
+                  href="/matches"
+                  className="px-6 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition"
+                >
+                  See matches
+                </Link>
+
+                <Link
+                  href="/quiz"
+                  className="px-6 py-3 rounded-xl bg-white/10 border border-white/15 font-semibold hover:bg-white/15 transition"
+                >
+                  Retake quiz
+                </Link>
+
+                <Link
+                  href="/settings"
+                  className="px-6 py-3 rounded-xl bg-purple-600 text-white font-semibold hover:bg-purple-700 transition"
+                >
+                  Update profile
+                </Link>
+              </div>
+            </>
+          )}
+        </section>
+      </main>
+    </OnboardingGate>
   );
 }

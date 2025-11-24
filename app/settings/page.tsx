@@ -1,0 +1,145 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import OnboardingGate from "@/components/OnboardingGate";
+import LumiOrb from "@/components/LumiOrb";
+import { tierLabel, type QuizTier } from "@/lib/quiz";
+
+type Settings = {
+  name: string;
+  city: string;
+  lookingFor: string;
+  dealbreakers: string;
+  tier?: QuizTier;
+};
+
+const STORAGE_KEY = "rivva_settings";
+
+export default function SettingsPage() {
+  const [form, setForm] = useState<Settings>({
+    name: "",
+    city: "",
+    lookingFor: "",
+    dealbreakers: "",
+    tier: undefined,
+  });
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) setForm(JSON.parse(raw));
+    } catch {}
+  }, []);
+
+  function update<K extends keyof Settings>(key: K, val: Settings[K]) {
+    setSaved(false);
+    setForm((f) => ({ ...f, [key]: val }));
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
+      setSaved(true);
+    } catch {}
+  }
+
+  return (
+    <OnboardingGate>
+      <main className="min-h-screen bg-[#0b0b14] text-white px-6 py-12">
+        <section className="max-w-3xl mx-auto">
+          <header className="flex items-center justify-between mb-8">
+            <Link href="/matches" className="text-sm text-white/70 hover:text-white">
+              ← Back to matches
+            </Link>
+            <div className="scale-75">
+              <LumiOrb />
+            </div>
+          </header>
+
+          <h1 className="text-3xl font-bold mb-2">Your Profile</h1>
+          <p className="text-white/60 text-sm mb-6">
+            This stays on your device for now. Lumi uses it to personalize your matches.
+          </p>
+
+          <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl flex flex-col gap-4">
+            <label className="text-sm text-white/80">
+              Name
+              <input
+                value={form.name}
+                onChange={(e) => update("name", e.target.value)}
+                placeholder="Your name"
+                className="mt-1 w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-white/40"
+              />
+            </label>
+
+            <label className="text-sm text-white/80">
+              City
+              <input
+                value={form.city}
+                onChange={(e) => update("city", e.target.value)}
+                placeholder="Where you live"
+                className="mt-1 w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-white/40"
+              />
+            </label>
+
+            <label className="text-sm text-white/80">
+              What you’re looking for
+              <textarea
+                value={form.lookingFor}
+                onChange={(e) => update("lookingFor", e.target.value)}
+                placeholder="Short + real. e.g. 'stable, playful, emotionally present'"
+                rows={3}
+                className="mt-1 w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-white/40 resize-none"
+              />
+            </label>
+
+            <label className="text-sm text-white/80">
+              Dealbreakers (optional)
+              <textarea
+                value={form.dealbreakers}
+                onChange={(e) => update("dealbreakers", e.target.value)}
+                placeholder="Optional boundaries that matter to you"
+                rows={2}
+                className="mt-1 w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-white/40 resize-none"
+              />
+            </label>
+
+            {/* quiz tier readout */}
+            {form.tier && (
+              <div className="rounded-2xl bg-black/30 border border-white/10 p-4">
+                <p className="text-sm font-semibold">
+                  Lumi tier: {tierLabel(form.tier)}
+                </p>
+                <p className="text-xs text-white/60 mt-1">
+                  Updated from your latest quiz.
+                </p>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={save}
+                className="px-5 py-2.5 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition"
+              >
+                Save profile
+              </button>
+
+              {saved && (
+                <span className="text-xs text-green-300">Saved ✓</span>
+              )}
+
+              <Link
+                href="/quiz"
+                className="ml-auto text-sm text-purple-200 hover:text-purple-100"
+              >
+                Retake quiz →
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
+    </OnboardingGate>
+  );
+}

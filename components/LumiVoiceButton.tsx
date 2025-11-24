@@ -7,103 +7,71 @@ type Props = {
   className?: string;
 };
 
-export default function LumiVoiceButton({ text, className }: Props) {
+export default function LumiVoiceButton({ text, className = "" }: Props) {
   const [supported, setSupported] = useState(false);
   const [speaking, setSpeaking] = useState(false);
-  const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
   const utterRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   useEffect(() => {
-    const ok =
+    setSupported(
       typeof window !== "undefined" &&
-      "speechSynthesis" in window &&
-      "SpeechSynthesisUtterance" in window;
-
-    setSupported(ok);
-    if (!ok) return;
-
-    function loadVoices() {
-      voicesRef.current = window.speechSynthesis.getVoices();
-    }
-    loadVoices();
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-
-    return () => {
-      window.speechSynthesis.onvoiceschanged = null;
-      window.speechSynthesis.cancel();
-    };
+        "speechSynthesis" in window &&
+        "SpeechSynthesisUtterance" in window
+    );
   }, []);
 
-  const lumiVoice = useMemo(() => {
-    const voices = voicesRef.current || [];
-    if (!voices.length) return null;
+  const intros = useMemo(
+    () => [
+      "Okay, here’s what I’m noticing.",
+      "Let me give you a quick read.",
+      "Alright… here’s the vibe I’m getting.",
+      "Here’s the simple truth.",
+      "Wanna hear my take?",
+    ],
+    []
+  );
 
-    // Prefer natural English female voices when available
-    const preferred = [
-      "Google US English",
-      "Microsoft Aria Online",
-      "Microsoft Jenny Online",
-      "Samantha",
-      "Ava",
-      "Serena",
-      "Victoria",
-    ];
-
-    // 1) Exact preferred match
-    for (const name of preferred) {
-      const v = voices.find(
-        (vv) =>
-          vv.name.toLowerCase().includes(name.toLowerCase()) &&
-          vv.lang.toLowerCase().startsWith("en")
-      );
-      if (v) return v;
-    }
-
-    // 2) Any English female-ish voice by heuristic
-    const femaleHint = voices.find(
-      (vv) =>
-        vv.lang.toLowerCase().startsWith("en") &&
-        /female|woman|girl|aria|jenny|samantha|ava|victoria|serena/i.test(vv.name)
-    );
-    if (femaleHint) return femaleHint;
-
-    // 3) Fallback: first English
-    return voices.find((vv) => vv.lang.toLowerCase().startsWith("en")) || null;
-  }, [supported, speaking]);
-
-  function stop() {
-    if (!supported) return;
-    window.speechSynthesis.cancel();
-    setSpeaking(false);
-    utterRef.current = null;
+  function pickIntro() {
+    return intros[Math.floor(Math.random() * intros.length)];
   }
 
   function speak() {
     if (!supported) return;
 
-    // If already speaking, toggle off
+    const synth = window.speechSynthesis;
     if (speaking) {
-      stop();
+      synth.cancel();
+      setSpeaking(false);
       return;
     }
 
-    window.speechSynthesis.cancel();
+    synth.cancel();
 
-    const u = new SpeechSynthesisUtterance(text);
+    const intro = pickIntro();
+    const full = `${intro} ${text}`;
 
-    if (lumiVoice) u.voice = lumiVoice;
+    const utter = new SpeechSynthesisUtterance(full);
 
-    // Natural cadence
-    u.rate = 0.98;   // slightly slower than default
-    u.pitch = 1.05;  // gentle brightness
-    u.volume = 1;
+    // softer, more human pacing
+    utter.rate = 0.95;
+    utter.pitch = 1.08;
+    utter.volume = 1;
 
-    u.onstart = () => setSpeaking(true);
-    u.onend = () => setSpeaking(false);
-    u.onerror = () => setSpeaking(false);
+    // try to prefer a natural female voice if present
+    const voices = synth.getVoices();
+    const preferred =
+      voices.find((v) =>
+        /female|woman|samantha|aria|jenny|zira|serena/i.test(v.name)
+      ) || voices.find((v) => /en-US|en-GB/i.test(v.lang));
 
-    utterRef.current = u;
-    window.speechSynthesis.speak(u);
+    if (preferred) utter.voice = preferred;
+
+    utter.onstart = () => setSpeaking(true);
+    utter.onend = () => setSpeaking(false);
+    utter.onerror = () => setSpeaking(false);
+
+    utterRef.current = utter;
+    synth.speak(utter);
   }
 
   if (!supported) return null;
@@ -111,17 +79,17 @@ export default function LumiVoiceButton({ text, className }: Props) {
   return (
     <button
       onClick={speak}
-      aria-label="Toggle Lumi voice"
-      className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium
-        border border-white/15 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition
-        ${className || ""}`}
+      className={`inline-flex items-center gap-2 text-xs px-3 py-2 rounded-full border transition
+      ${
+        speaking
+          ? "bg-white text-black border-white"
+          : "bg-white/5 text-white border-white/10 hover:bg-white/10"
+      } ${className}`}
+      aria-label="Play Lumi voice"
+      title={speaking ? "Stop Lumi" : "Play Lumi voice"}
     >
-      <span
-        className={`h-2.5 w-2.5 rounded-full ${
-          speaking ? "bg-cyan-300 animate-pulse" : "bg-white/50"
-        }`}
-      />
-      {speaking ? "Lumi speaking…" : "Hear Lumi"}
+      <span className="text-base leading-none">{speaking ? "■" : "▶︎"}</span>
+      <span>{speaking ? "Stop Lumi" : "Lumi voice"}</span>
     </button>
   );
 }
