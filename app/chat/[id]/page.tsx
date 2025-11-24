@@ -2,241 +2,174 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import LumiOrb from "@/components/LumiOrb";
-import ChatMessage from "@/components/ChatMessage";
-import LumiChips from "@/components/LumiChips";
-import LumiVoiceButton from "@/components/LumiVoiceButton";
+import Link from "next/link";
+
 import OnboardingGate from "@/components/OnboardingGate";
-import CompatibilityMeter from "@/components/CompatibilityMeter";
-import LumiMemoryNote from "@/components/LumiMemoryNote";
+import LumiOrb from "@/components/LumiOrb";
+import ChatBubble from "@/components/ChatBubble";
+import LumiOpeners from "@/components/LumiOpeners";
+import LumiVoiceButton from "@/components/LumiVoiceButton";
 
-import { getMatch, getChatSeed, ChatMessage as Msg } from "@/lib/matches";
-import { loadProfile } from "@/lib/profile";
-import { loadChat, saveChat } from "@/lib/chatStore";
+import { MOCK_MATCHES, type Match } from "@/lib/matches";
+import { addMsg, loadChat, type ChatMsg } from "@/lib/chatStore";
 
-const LUMI_SUGGESTIONS: Record<string, string[]> = {
-  maya: [
-    "I feel grounded around calm, honest energy. What does that look like for you?",
-    "A small thing that makes me feel safe is consistency. What’s yours?",
-    "What’s a vibe you want more of in your life lately?",
-  ],
-  aden: [
-    "A good relationship feels like peace + effort on both sides.",
-    "I value communication that stays kind even when it’s hard.",
-    "What does loyalty mean to you in practice?",
-  ],
-  zoe: [
-    "I’m down for something fun — what’s your perfect spontaneous plan?",
-    "Let’s do something simple then chase a vibe after 😄",
-    "What’s your ideal mix: chill vs adventure?",
-  ],
-  samir: [
-    "A green flag for me is emotional consistency. What’s yours?",
-    "I like when someone is direct but warm.",
-    "What’s something you’re excited about right now?",
-  ],
-};
-
-const LUMI_NUDGES = [
-  "That felt real — good energy.",
-  "Nice. Clear + warm is your lane.",
-  "You’re leading with intention. Keep that.",
-  "That line lands. Human, not try-hard.",
-  "I like that. It’s you, not a script.",
-];
-
-function safeId() {
+function uid() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
   }
   return Math.random().toString(36).slice(2);
 }
 
-function computeCompatibility(matchVibe?: string, userTier?: string) {
-  if (!matchVibe || !userTier) return 68;
-  if (matchVibe === userTier) return 92;
-  return 74;
+function prettyTime(ts: number) {
+  const d = new Date(ts);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 export default function ChatPage() {
   const params = useParams<{ id?: string }>();
   const router = useRouter();
-  const id = params?.id;
+  const id = params?.id ?? "";
 
-  const match = useMemo(() => (id ? getMatch(id) : null), [id]);
-
-  const [messages, setMessages] = useState<Msg[]>([]);
-  const [input, setInput] = useState("");
-  const [lumiThinking, setLumiThinking] = useState(false);
-  const [profileTier, setProfileTier] = useState<string | undefined>(undefined);
-
-  const bottomRef = useRef<HTMLDivElement | null>(null);
-
-  // Load profile tier on client
-  useEffect(() => {
-    try {
-      const p = loadProfile();
-      setProfileTier(p?.quizTier);
-    } catch {}
-  }, []);
-
-  const compatibility = useMemo(
-    () => computeCompatibility(match?.vibe, profileTier),
-    [match?.vibe, profileTier]
+  const match: Match | undefined = useMemo(
+    () => MOCK_MATCHES.find((m) => m.id === id),
+    [id]
   );
 
-  // Load chat from storage first, otherwise seed
-  useEffect(() => {
-    if (!id) return;
-    const stored = loadChat(id);
-    if (stored.length > 0) {
-      setMessages(stored);
-    } else {
-      const seed = getChatSeed(id);
-      setMessages(seed);
-      saveChat(id, seed);
-    }
-  }, [id]);
+  const [msgs, setMsgs] = useState<ChatMsg[]>([]);
+  const [text, setText] = useState("");
+  const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  // Persist every change to messages
   useEffect(() => {
-    if (!id) return;
-    saveChat(id, messages);
+    if (!match) return;
+    setMsgs(loadChat(match.id));
+  }, [match]);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, id, lumiThinking]);
+  }, [msgs]);
 
   if (!match) {
     return (
       <main className="min-h-screen bg-[#0b0b14] text-white flex items-center justify-center">
-        <p className="text-white/70">Match not found.</p>
+        <p className="text-white/70">Chat not found.</p>
       </main>
     );
   }
 
-  function send(text: string) {
-    const trimmed = text.trim();
-    if (!trimmed || lumiThinking) return;
+  function sendMessage(content: string) {
+    const trimmed = content.trim();
+    if (!trimmed) return;
 
-    const newMsg: Msg = {
-      id: safeId(),
-      from: "you",
+    const myMsg: ChatMsg = {
+      id: uid(),
+      from: "me",
       text: trimmed,
       ts: Date.now(),
     };
 
-    setMessages((m) => [...m, newMsg]);
-    setInput("");
+    let next = addMsg(match.id, myMsg);
+    setMsgs(next);
+    setText("");
 
-    setLumiThinking(true);
-    setTimeout(() => {
-      const nudge =
-        LUMI_NUDGES[Math.floor(Math.random() * LUMI_NUDGES.length)];
-
-      setMessages((m) => [
-        ...m,
-        {
-          id: safeId(),
+    // Lumi gentle coach nudge after your 1st / 3rd message
+    const myCount = next.filter((m) => m.from === "me").length;
+    if (myCount === 1 || myCount === 3) {
+      setTimeout(() => {
+        const nudge: ChatMsg = {
+          id: uid(),
           from: "lumi",
-          text: nudge,
+          text:
+            myCount === 1
+              ? `Nice opener. Keep it light and curious — don’t over-explain yet.`
+              : `You’re doing well. Try a follow-up that invites a story.`,
           ts: Date.now(),
-        },
-      ]);
-      setLumiThinking(false);
-    }, 850);
+        };
+        next = addMsg(match.id, nudge);
+        setMsgs(next);
+      }, 700);
+    }
   }
-
-  // Safer to key suggestions off match.id, not route id
-  const suggestions =
-    LUMI_SUGGESTIONS[match.id] ?? [
-      "Tell me something you’re genuinely excited about lately.",
-      "What does a good connection feel like to you?",
-      "What’s a small green flag you notice early?",
-    ];
 
   return (
     <OnboardingGate>
-      <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col">
-        <header className="px-6 py-4 border-b border-white/10 flex items-center justify-between gap-4">
+      <main className="min-h-screen bg-[#0b0b14] text-white px-4 py-6 flex flex-col">
+        {/* Top bar */}
+        <header className="max-w-3xl w-full mx-auto flex items-center justify-between py-2">
           <button
-            onClick={() => router.push("/matches")}
+            onClick={() => router.back()}
             className="text-sm text-white/70 hover:text-white"
           >
             ← Back
           </button>
 
-          <div className="text-center flex flex-col items-center">
-            <p className="font-semibold">{match.name}</p>
-            <p className="text-xs text-white/50">{match.city}</p>
-          </div>
-
           <div className="flex items-center gap-3">
-            <CompatibilityMeter score={compatibility} />
+            <Link href={`/matches/${match.id}`} className="text-sm hover:underline">
+              {match.name}
+            </Link>
             <div className="scale-75">
               <LumiOrb />
             </div>
           </div>
         </header>
 
-        {/* Lumi memory note */}
-        <div className="px-6">
-          <LumiMemoryNote matchId={match.id} />
-        </div>
+        {/* Openers */}
+        {msgs.length === 0 && (
+          <section className="max-w-3xl w-full mx-auto mt-3">
+            <LumiOpeners match={match} onPick={(o) => sendMessage(o)} />
+          </section>
+        )}
 
-        <section className="flex-1 px-6 py-5 overflow-y-auto">
-          {messages.map((msg) => (
-            <ChatMessage key={msg.id} from={msg.from} text={msg.text} />
-          ))}
-
-          {lumiThinking && (
-            <ChatMessage from="lumi" text="Lumi is thinking…" />
+        {/* Messages */}
+        <section className="max-w-3xl w-full mx-auto flex-1 mt-4 space-y-3 overflow-y-auto pb-28">
+          {msgs.length === 0 && (
+            <p className="text-center text-white/40 text-sm mt-10">
+              Say hi to {match.name}.
+            </p>
           )}
+
+          {msgs.map((m) => (
+            <ChatBubble
+              key={m.id}
+              from={m.from}
+              text={m.text}
+              time={prettyTime(m.ts)}
+            />
+          ))}
 
           <div ref={bottomRef} />
         </section>
 
-        <div className="px-6 pb-3">
-          <p className="text-xs text-white/50 mb-2">Lumi suggestions</p>
-          <LumiChips
-            suggestions={suggestions}
-            disabled={lumiThinking}
-            onPick={(t) => send(t)}
-          />
-        </div>
+        {/* Input */}
+        <footer className="fixed bottom-0 left-0 right-0 bg-[#0b0b14]/95 border-t border-white/10">
+          <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-2">
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Type a message…"
+              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-white/40"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  sendMessage(text);
+                }
+              }}
+            />
 
-        <footer className="px-6 py-4 border-t border-white/10 flex items-center gap-3">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Say something real…"
-            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-white/40"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                send(input);
-              }
-            }}
-          />
+            <div className="shrink-0">
+              <LumiVoiceButton
+                onTranscript={(t) =>
+                  setText((prev) => (prev ? prev + " " + t : t))
+                }
+              />
+            </div>
 
-          <LumiVoiceButton
-            onTranscript={(t) =>
-              setInput((prev) => (prev ? prev + " " + t : t))
-            }
-            disabled={lumiThinking}
-            prompt={`Speak your message to ${match.name}.`}
-          />
-
-          <button
-            onClick={() => send(input)}
-            disabled={lumiThinking}
-            className={`px-5 py-3 rounded-xl font-semibold transition
-              ${
-                lumiThinking
-                  ? "bg-white/10 text-white/60 cursor-not-allowed"
-                  : "bg-white text-black hover:bg-white/90"
-              }`}
-          >
-            Send
-          </button>
+            <button
+              onClick={() => sendMessage(text)}
+              className="shrink-0 px-5 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition"
+            >
+              Send
+            </button>
+          </div>
         </footer>
       </main>
     </OnboardingGate>

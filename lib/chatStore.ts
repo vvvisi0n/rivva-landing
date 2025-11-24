@@ -1,30 +1,30 @@
-import type { ChatMessage } from "@/lib/matches";
+export type ChatMsg = {
+  id: string;
+  from: "me" | "match" | "lumi";
+  text: string;
+  ts: number;
+};
 
-const chatKey = (matchId: string) => `rivva_chat_${matchId}`;
+function key(matchId: string) {
+  return `rivva_chat_${matchId}`;
+}
 
-export function loadChat(matchId: string): ChatMessage[] {
-  if (typeof window === "undefined") return [];
+export function loadChat(matchId: string): ChatMsg[] {
   try {
-    const raw = localStorage.getItem(chatKey(matchId));
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as ChatMessage[];
-    if (!Array.isArray(parsed)) return [];
-    return parsed;
+    const raw = localStorage.getItem(key(matchId));
+    return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
   }
 }
 
-export function saveChat(matchId: string, messages: ChatMessage[]) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(chatKey(matchId), JSON.stringify(messages));
-  } catch {
-    // ignore quota errors
-  }
+export function saveChat(matchId: string, msgs: ChatMsg[]) {
+  localStorage.setItem(key(matchId), JSON.stringify(msgs));
 }
 
-export function clearChat(matchId: string) {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(chatKey(matchId));
+export function addMsg(matchId: string, msg: ChatMsg) {
+  const msgs = loadChat(matchId);
+  const next = [...msgs, msg];
+  saveChat(matchId, next);
+  return next;
 }
