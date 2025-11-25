@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import LumiOrb from "@/components/LumiOrb";
 import TypingBubble from "@/components/TypingBubble";
+import LumiVoiceButton from "@/components/LumiVoiceButton";
 
 type Option = { id: string; text: string; score: number };
 type Question = {
@@ -76,10 +77,11 @@ export default function QuizPage() {
       ...answers,
       [current.id]: opt,
     };
-    setAnswers(nextAnswers);
 
+    setAnswers(nextAnswers);
     setIsThinking(true);
 
+    // Small Lumi "thinking" delay for vibe/flow
     setTimeout(() => {
       setIsThinking(false);
 
@@ -104,44 +106,52 @@ export default function QuizPage() {
 
   return (
     <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center px-6 py-16">
-      <div className="mb-8">
+      {/* Orb + Voice */}
+      <div className="mb-8 flex flex-col items-center gap-3">
         <LumiOrb />
+        <LumiVoiceButton />
       </div>
 
+      {/* Card */}
       <div className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-3xl p-8 shadow-xl">
-        <div className="flex items-center justify-between mb-6">
+        {/* Progress */}
+        <div className="flex items-center justify-between mb-3">
           <p className="text-sm text-white/70">
             Question {index + 1} of {totalQuestions}
           </p>
           <p className="text-sm text-white/70">{progress}%</p>
         </div>
 
-        <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden mb-8">
+        <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden mb-7">
           <div
-            className="h-full bg-gradient-to-r from-purple-500 to-cyan-400 transition-all"
+            className="h-full bg-gradient-to-r from-purple-500 to-cyan-400 transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
         </div>
 
-        <h1 className="text-2xl md:text-3xl font-semibold leading-snug mb-6">
+        {/* Prompt */}
+        <h1 className="text-2xl md:text-3xl font-semibold leading-snug mb-5">
           {current.prompt}
         </h1>
 
+        {/* Typing Bubble */}
         {isThinking && (
-          <TypingBubble className="mb-6" label="Lumi is processing your vibe…" />
+          <TypingBubble className="mb-5" label="Lumi is reading your vibe…" />
         )}
 
+        {/* Options */}
         <div className="grid grid-cols-1 gap-3">
           {current.options.map((opt) => (
             <button
               key={opt.id}
               onClick={() => pickOption(opt)}
               disabled={isThinking}
-              className={`text-left px-5 py-4 rounded-2xl border transition ${
-                isThinking
-                  ? "bg-white/5 border-white/10 opacity-60 cursor-not-allowed"
-                  : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
-              }`}
+              className={`text-left px-5 py-4 rounded-2xl border transition duration-200
+                ${
+                  isThinking
+                    ? "bg-white/5 border-white/10 opacity-60 cursor-not-allowed"
+                    : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 active:scale-[0.99]"
+                }`}
             >
               {opt.text}
             </button>
