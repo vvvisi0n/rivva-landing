@@ -8,6 +8,8 @@ import BlueprintCard from "@/components/BlueprintCard";
 import ConnectionForecastCard from "@/components/ConnectionForecastCard";
 import MatchCard from "@/components/MatchCard";
 
+import { type Match } from "@/lib/matches";
+
 type Profile = {
   name: string;
   age: string;
@@ -101,7 +103,8 @@ function buildForecast(tierTitle: string, intent?: string) {
   };
 
   if (tierTitle === "Spark Seeker") {
-    base.headline = "You’re magnetic right now — but you need someone who can *stay steady*.";
+    base.headline =
+      "You’re magnetic right now — but you need someone who can *stay steady*.";
     base.energy =
       "Your vibe thrives on momentum and chemistry. The right match won’t just excite you — they’ll also ground you when the high fades.";
     base.focus = [
@@ -171,47 +174,54 @@ function buildForecast(tierTitle: string, intent?: string) {
       "Your depth is rare. Don’t offer it to someone who only wants the surface.";
   }
 
-  // tweak by intent
   if (intent?.toLowerCase().includes("casual")) {
-    base.lumiNote += " Since you’re leaning casual, keep it light but still respect your standards.";
+    base.lumiNote +=
+      " Since you’re leaning casual, keep it light but still respect your standards.";
   }
   if (intent?.toLowerCase().includes("serious")) {
-    base.lumiNote += " Because you want something real, prioritize consistency over charm.";
+    base.lumiNote +=
+      " Because you want something real, prioritize consistency over charm.";
   }
 
   return base;
 }
 
-const MOCK_MATCHES = [
+const MOCK_MATCHES: Match[] = [
   {
     id: "m1",
     name: "Ari",
     age: 28,
-    city: "Brooklyn, NY",
-    vibe:
+    location: "Brooklyn, NY",
+    bio:
       "Warm, playful, and emotionally present. Loves deep talks but keeps things fun.",
-    tags: ["emotionally steady", "fun energy", "intentional"],
-    compatibility: 88,
+    images: ["/matches/ari-1.jpg", "/matches/ari-2.jpg"],
+    vibeTags: ["emotionally steady", "fun energy", "intentional"],
+    lastMessage: "You up for tacos this week?",
+    lastActive: "2h ago",
   },
   {
     id: "m2",
     name: "Sam",
     age: 31,
-    city: "Atlanta, GA",
-    vibe:
+    location: "Atlanta, GA",
+    bio:
       "Low ego, high curiosity. Communicates clearly and makes things feel easy.",
-    tags: ["great communicator", "secure vibe", "values-led"],
-    compatibility: 82,
+    images: ["/matches/noah-1.jpg"],
+    vibeTags: ["great communicator", "secure vibe", "values-led"],
+    lastMessage: "That playlist was fire lol",
+    lastActive: "5h ago",
   },
   {
     id: "m3",
     name: "Jo",
     age: 27,
-    city: "Toronto, CA",
-    vibe:
+    location: "Toronto, CA",
+    bio:
       "Quiet confidence. Shows love through consistency and small thoughtful gestures.",
-    tags: ["slow-burn", "loyal", "gentle energy"],
-    compatibility: 79,
+    images: ["/matches/zee-1.jpg", "/matches/zee-2.jpg"],
+    vibeTags: ["slow-burn", "loyal", "gentle energy"],
+    lastMessage: "Send me your favorite song rn",
+    lastActive: "1d ago",
   },
 ];
 
@@ -248,7 +258,6 @@ export default function DashboardPage() {
       </div>
 
       <div className="w-full max-w-4xl grid gap-6">
-        {/* Header */}
         <div className="rounded-3xl bg-white/5 border border-white/10 p-7 shadow-xl">
           <h1 className="text-3xl font-bold mb-2">Lumi Dashboard</h1>
 
@@ -257,16 +266,17 @@ export default function DashboardPage() {
           ) : (
             <p className="text-white/80">
               Welcome back,{" "}
-              <span className="font-semibold">{profile.name}</span>.
-              Here’s what I’m learning about your relationship energy.
+              <span className="font-semibold">{profile.name}</span>. Here’s what
+              I’m learning about your relationship energy.
             </p>
           )}
         </div>
 
-        {/* Blueprint */}
         {score == null || !tier ? (
           <div className="rounded-3xl bg-white/5 border border-white/10 p-7 shadow-xl">
-            <h2 className="text-2xl font-bold mb-2">Your Compatibility Blueprint</h2>
+            <h2 className="text-2xl font-bold mb-2">
+              Your Compatibility Blueprint
+            </h2>
             <p className="text-white/75 mb-5">
               I don’t have your quiz vibe yet. Take the Lumi Compatibility Quiz
               so I can generate your blueprint.
@@ -283,12 +293,8 @@ export default function DashboardPage() {
           <BlueprintCard tier={tier} score={score} maxScore={MAX_SCORE} />
         )}
 
-        {/* Forecast */}
-        {forecast && (
-          <ConnectionForecastCard forecast={forecast} />
-        )}
+        {forecast && <ConnectionForecastCard forecast={forecast} />}
 
-        {/* Mock matches */}
         {tier && (
           <section className="rounded-3xl bg-white/5 border border-white/10 p-6 md:p-7 shadow-xl">
             <div className="flex items-center justify-between">
@@ -301,7 +307,8 @@ export default function DashboardPage() {
             </div>
 
             <p className="text-white/70 mt-2 mb-5">
-              Based on your blueprint, here are the kinds of people you’ll click with.
+              Based on your blueprint, here are the kinds of people you’ll click
+              with.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -312,17 +319,20 @@ export default function DashboardPage() {
           </section>
         )}
 
-        {/* Snapshot */}
         {answers && (
           <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl">
-            <h3 className="text-lg font-semibold mb-3">Quick vibe snapshot</h3>
+            <h3 className="text-lg font-semibold mb-3">
+              Quick vibe snapshot
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-white/80">
               {Object.entries(answers).map(([qid, opt]) => (
                 <div
                   key={qid}
                   className="rounded-2xl bg-white/5 border border-white/10 p-4"
                 >
-                  <p className="text-xs text-white/50 mb-1">{qid.toUpperCase()}</p>
+                  <p className="text-xs text-white/50 mb-1">
+                    {qid.toUpperCase()}
+                  </p>
                   <p>{opt.text}</p>
                 </div>
               ))}
@@ -346,10 +356,10 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Tease */}
         <div className="rounded-3xl bg-gradient-to-r from-purple-500/10 to-cyan-400/5 border border-white/10 p-6">
           <p className="text-white/80 text-sm">
-            Next up: turn these mock matches into real swipable profiles with filters + chat.
+            Next up: turn these mock matches into real swipable profiles with
+            filters + chat.
           </p>
         </div>
       </div>

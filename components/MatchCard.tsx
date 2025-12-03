@@ -1,68 +1,71 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import type { Match } from "@/lib/matches";
-import { isLiked, toggleLike } from "@/lib/likes";
 
-export default function MatchCard({ match }: { match: Match }) {
-  const [liked, setLiked] = useState(false);
+type Props = {
+  match: Match & {
+    // allow legacy fields that some pages still use
+    city?: string;
+    tags?: string[];
+    compatibility?: number;
+  };
+};
 
-  useEffect(() => {
-    setLiked(isLiked(match.id));
-  }, [match.id]);
+export default function MatchCard({ match }: Props) {
+  const tags =
+    match.vibeTags ??
+    match.tags ??
+    [];
 
-  function onLike(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    setLiked(toggleLike(match.id));
-  }
+  const city = match.location ?? match.city ?? "";
+  const percent = match.compatibility;
 
   return (
     <Link
       href={`/matches/${match.id}`}
-      className="group block rounded-3xl bg-white/5 border border-white/10 p-4 hover:bg-white/10 transition shadow-xl"
+      className="rounded-2xl bg-white/5 border border-white/10 p-5 hover:bg-white/10 transition block"
     >
-      <div className="flex items-center gap-4">
-        <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-purple-500/40 to-cyan-400/40 border border-white/10" />
-        <div className="flex-1 text-left">
-          <p className="text-lg font-semibold">
-            {match.name}, {match.age}
-          </p>
-          <p className="text-sm text-white/60">{match.city}</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {match.tags.map((t) => (
-              <span
-                key={t}
-                className="text-xs px-2 py-1 rounded-full bg-black/40 border border-white/10 text-white/80"
-              >
-                {t}
-              </span>
-            ))}
-          </div>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-semibold">
+            {match.name}
+            {match.age ? `, ${match.age}` : ""}
+          </h3>
+
+          {city && (
+            <p className="text-sm text-white/60">{city}</p>
+          )}
         </div>
 
-        <button
-          onClick={onLike}
-          className={`shrink-0 px-3 py-2 rounded-full text-xs font-semibold border transition
-            ${
-              liked
-                ? "bg-white text-black border-white"
-                : "bg-white/5 text-white border-white/10 hover:bg-white/10"
-            }`}
-          aria-label="Like match"
-        >
-          {liked ? "Liked ✓" : "Like"}
-        </button>
+        {typeof percent === "number" && (
+          <div className="text-right">
+            <p className="text-[11px] text-white/50">compatibility</p>
+            <p className="text-xl font-extrabold bg-gradient-to-r from-purple-400 to-cyan-300 bg-clip-text text-transparent">
+              {percent}%
+            </p>
+          </div>
+        )}
       </div>
 
-      <p className="text-sm text-white/70 mt-3 line-clamp-2">
-        {match.bio}
-      </p>
+      {tags.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {tags.map((t) => (
+            <span
+              key={t}
+              className="text-xs px-2 py-1 rounded-full bg-black/40 border border-white/10 text-white/80"
+            >
+              {t}
+            </span>
+          ))}
+        </div>
+      )}
 
-      <p className="text-xs text-purple-200 mt-3 opacity-0 group-hover:opacity-100 transition">
-        View profile →
-      </p>
+      {match.bio && (
+        <p className="text-sm text-white/75 mt-3 line-clamp-3">
+          {match.bio}
+        </p>
+      )}
     </Link>
   );
 }

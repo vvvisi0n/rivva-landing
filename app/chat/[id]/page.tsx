@@ -62,6 +62,7 @@ export default function ChatPage() {
 
   const chemistry = useMemo(() => computeChemistry(msgs), [msgs]);
 
+  // Guard: no match = dead page
   if (!match) {
     return (
       <main className="min-h-screen bg-[#0b0b14] text-white flex items-center justify-center">
@@ -69,6 +70,9 @@ export default function ChatPage() {
       </main>
     );
   }
+
+  // ✅ Safe, non-undefined reference for callbacks
+  const safeMatch = match;
 
   function sendMessage(content: string) {
     const trimmed = content.trim();
@@ -82,7 +86,7 @@ export default function ChatPage() {
       reactions: {},
     };
 
-    let next = addMsg(match.id, myMsg);
+    let next = addMsg(safeMatch.id, myMsg);
     setMsgs(next);
     setText("");
 
@@ -100,7 +104,7 @@ export default function ChatPage() {
           ts: Date.now(),
           reactions: {},
         };
-        next = addMsg(match.id, nudge);
+        next = addMsg(safeMatch.id, nudge);
         setMsgs(next);
       }, 650);
     }
@@ -110,7 +114,7 @@ export default function ChatPage() {
     const delay = 900 + Math.min(1200, trimmed.length * 18);
 
     setTimeout(() => {
-      const replyText = simulateMatchReply(match, next);
+      const replyText = simulateMatchReply(safeMatch, next);
       const replyMsg: ChatMsg = {
         id: uid(),
         from: "match",
@@ -118,7 +122,7 @@ export default function ChatPage() {
         ts: Date.now(),
         reactions: {},
       };
-      next = addMsg(match.id, replyMsg);
+      next = addMsg(safeMatch.id, replyMsg);
       setMsgs(next);
       setMatchTyping(false);
     }, delay);
@@ -132,7 +136,7 @@ export default function ChatPage() {
         [key]: current + 1,
       },
     };
-    const next = updateMsg(match.id, msg.id, updated);
+    const next = updateMsg(safeMatch.id, msg.id, updated);
     setMsgs(next);
   }
 
@@ -150,10 +154,10 @@ export default function ChatPage() {
 
           <div className="flex items-center gap-3">
             <Link
-              href={`/matches/${match.id}`}
+              href={`/matches/${safeMatch.id}`}
               className="text-sm hover:underline"
             >
-              {match.name}
+              {safeMatch.name}
             </Link>
             <div className="scale-75">
               <LumiOrb />
@@ -169,7 +173,7 @@ export default function ChatPage() {
         {/* Openers */}
         {msgs.length === 0 && (
           <section className="max-w-3xl w-full mx-auto mt-3">
-            <LumiOpeners match={match} onPick={(o) => sendMessage(o)} />
+            <LumiOpeners match={safeMatch} onPick={(o) => sendMessage(o)} />
           </section>
         )}
 
@@ -177,7 +181,7 @@ export default function ChatPage() {
         <section className="max-w-3xl w-full mx-auto flex-1 mt-4 space-y-3 overflow-y-auto pb-32">
           {msgs.length === 0 && (
             <p className="text-center text-white/40 text-sm mt-10">
-              Say hi to {match.name}.
+              Say hi to {safeMatch.name}.
             </p>
           )}
 
@@ -190,7 +194,7 @@ export default function ChatPage() {
             />
           ))}
 
-          {matchTyping && <MatchTyping name={match.name} />}
+          {matchTyping && <MatchTyping name={safeMatch.name} />}
 
           <div ref={bottomRef} />
         </section>
@@ -212,14 +216,18 @@ export default function ChatPage() {
               disabled={matchTyping}
             />
 
-            <LumiRewriteButton draft={text} onRewrite={setText} disabled={matchTyping} />
+            <LumiRewriteButton
+  draft={text}
+  onRewrite={setText}
+/>
+
 
             <LumiVoiceButton
               onTranscript={(t) =>
                 setText((prev) => (prev ? prev + " " + t : t))
               }
               disabled={matchTyping}
-              prompt={`Speak your message to ${match.name}.`}
+              prompt={`Speak your message to ${safeMatch.name}.`}
             />
 
             <button

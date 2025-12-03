@@ -1,106 +1,81 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback } from "react";
+import { useLumiVoice } from "@/components/useLumiVoice";
 
 type Props = {
-  text: string;
+  /** Text-to-speech */
+  textToSpeak?: string;
+  /** Back-compat alias some pages use */
+  text?: string;
+
+  /** Speech-to-text (NOT supported yet by hook, so we no-op) */
+  onTranscript?: (text: string) => void;
+  prompt?: string;
+
+  disabled?: boolean;
   className?: string;
-  labelPlay?: string;
-  labelStop?: string;
+  label?: string;
 };
 
 export default function LumiVoiceButton({
+  textToSpeak,
   text,
-  className,
-  labelPlay = "Hear Lumi read this",
-  labelStop = "Stop",
+  onTranscript,
+  prompt,
+  disabled,
+  className = "",
+  label = "Voice",
 }: Props) {
-  const [supported, setSupported] = useState(false);
-  const [speaking, setSpeaking] = useState(false);
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const utterRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const voice = useLumiVoice();
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const ok = "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
-    setSupported(ok);
+  const speakText = textToSpeak ?? text ?? "";
 
-    if (!ok) return;
+  const onClick = useCallback(async () => {
+    if (!voice?.supported) return;
 
-    function loadVoices() {
-      const v = window.speechSynthesis.getVoices();
-      setVoices(v);
+    // If a page tries to use speech-to-text, the hook doesn't support it yet.
+    if (onTranscript) {
+      console.warn(
+        "LumiVoiceButton: speech-to-text requested, but useLumiVoice currently only supports text-to-speech.",
+        { prompt }
+      );
+      return;
     }
 
-    loadVoices();
-    window.speechSynthesis.onvoiceschanged = loadVoices;
+    if (!speakText.trim()) return;
 
-    return () => {
-      window.speechSynthesis.onvoiceschanged = null;
-    };
-  }, []);
+    voice.speak(speakText);
+  }, [voice, onTranscript, speakText, prompt]);
 
-  const preferredVoice = useMemo(() => {
-    if (!voices.length) return null;
-
-    // Prefer soft/natural English voices
-    const preferred = voices.find((v) =>
-      /en(-|_)us|en(-|_)gb|english/i.test(v.lang) &&
-      /natural|premium|enhanced|neural|siri|google|microsoft/i.test(v.name)
-    );
-
-    return preferred || voices.find((v) => /en/i.test(v.lang)) || voices[0];
-  }, [voices]);
-
-  function stop() {
-    if (!supported) return;
-    window.speechSynthesis.cancel();
-    setSpeaking(false);
-    utterRef.current = null;
-  }
-
-  function speak() {
-    if (!supported || !text.trim()) return;
-
-    stop();
-
-    const u = new SpeechSynthesisUtterance(text);
-
-    if (preferredVoice) {
-      u.voice = preferredVoice;
-    }
-
-    // Natural pacing
-    u.rate = 0.98;
-    u.pitch = 1.05;
-    u.volume = 1;
-
-    u.onstart = () => setSpeaking(true);
-    u.onend = () => setSpeaking(false);
-    u.onerror = () => setSpeaking(false);
-
-    utterRef.current = u;
-    window.speechSynthesis.speak(u);
-  }
-
-  if (!supported) return null;
+  const isDisabled =
+    disabled ||
+    !voice?.supported ||
+    (onTranscript ? true : !speakText.trim());
 
   return (
     <button
       type="button"
-      onClick={speaking ? stop : speak}
-      className={`inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold transition shadow-md
-        ${speaking
-          ? "bg-white/10 border border-white/20 text-white hover:bg-white/15"
-          : "bg-gradient-to-r from-purple-500 to-cyan-400 text-black hover:opacity-90"
+      onClick={onClick}
+      disabled={isDisabled}
+      aria-label={label}
+      title={
+        onTranscript
+          ? "Voice input coming soon"
+          : speakText
+          ? "Speak this out loud"
+          : "Nothing to speak"
+      }
+      className={`shrink-0 px-3 py-2 rounded-xl text-xs font-semibold border transition
+        ${
+          isDisabled
+            ? "bg-white/5 text-white/40 border-white/10 cursor-not-allowed"
+            : "bg-white/10 text-white border-white/15 hover:bg-white/15"
         }
-        ${className || ""}`}
-      aria-pressed={speaking}
+        ${className}
+      `}
     >
-      {speaking ? labelStop : labelPlay}
-      <span aria-hidden className="text-lg">
-        {speaking ? "■" : "▶"}
-      </span>
+      {label}
     </button>
   );
 }

@@ -16,16 +16,10 @@ export default function MatchProfilePage() {
   const router = useRouter();
   const id = params?.id ?? "";
 
-  const match: Match | undefined = useMemo(
+   const match: Match | undefined = useMemo(
     () => MOCK_MATCHES.find((m) => m.id === id),
     [id]
   );
-
-  const [liked, setLiked] = useState(false);
-
-  useEffect(() => {
-    if (match) setLiked(isLiked(match.id));
-  }, [match]);
 
   if (!match) {
     return (
@@ -35,9 +29,23 @@ export default function MatchProfilePage() {
     );
   }
 
+  const matchId = match.id; // now a guaranteed string
+
+  const [liked, setLiked] = useState(false);
+
+  useEffect(() => {
+    setLiked(isLiked(matchId));
+  }, [matchId]);
+
   function onLike() {
-    setLiked(toggleLike(match.id));
+    setLiked(toggleLike(matchId));
   }
+
+  const tags = match.vibeTags ?? [];
+  const images = match.images ?? [];
+  const bio = match.bio ?? "No bio yet.";
+  const age = match.age ? `${match.age}` : "";
+  const location = match.location ?? "";
 
   return (
     <OnboardingGate>
@@ -59,24 +67,46 @@ export default function MatchProfilePage() {
           {/* top card */}
           <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl">
             <div className="flex items-start gap-5">
-              <div className="h-24 w-24 rounded-3xl bg-gradient-to-br from-purple-500/40 to-cyan-400/40 border border-white/10" />
+              {/* profile image */}
+              <div className="h-24 w-24 rounded-3xl overflow-hidden bg-white/5 border border-white/10">
+                {images[0] ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={images[0]}
+                    alt={match.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full bg-gradient-to-br from-purple-500/40 to-cyan-400/40" />
+                )}
+              </div>
 
               <div className="flex-1">
                 <h1 className="text-2xl font-bold">
-                  {match.name}, {match.age}
+                  {match.name}
+                  {age ? `, ${age}` : ""}
                 </h1>
-                <p className="text-white/60 text-sm">{match.city}</p>
 
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {match.tags.map((t) => (
-                    <span
-                      key={t}
-                      className="text-xs px-2 py-1 rounded-full bg-black/40 border border-white/10 text-white/80"
-                    >
-                      {t}
-                    </span>
-                  ))}
-                </div>
+                {(location || match.lastActive) && (
+                  <p className="text-white/60 text-sm">
+                    {location}
+                    {location && match.lastActive ? " • " : ""}
+                    {match.lastActive}
+                  </p>
+                )}
+
+                {tags.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {tags.map((t) => (
+                      <span
+                        key={t}
+                        className="text-xs px-2 py-1 rounded-full bg-black/40 border border-white/10 text-white/80"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <button
@@ -92,9 +122,7 @@ export default function MatchProfilePage() {
               </button>
             </div>
 
-            <p className="text-white/80 leading-relaxed mt-5">
-              {match.bio}
-            </p>
+            <p className="text-white/80 leading-relaxed mt-5">{bio}</p>
           </div>
 
           {/* nudge */}
@@ -102,23 +130,29 @@ export default function MatchProfilePage() {
             <CoachNudge match={match} />
           </div>
 
-          {/* prompts */}
-          <div className="mt-6 grid grid-cols-1 gap-4">
-            {match.prompts.map((p, i) => (
-              <div
-                key={i}
-                className="rounded-2xl bg-white/5 border border-white/10 p-5"
-              >
-                <p className="text-sm text-white/60 mb-2">{p.q}</p>
-                <p className="text-white/90">{p.a}</p>
-              </div>
-            ))}
-          </div>
+          {/* gallery (optional) */}
+          {images.length > 1 && (
+            <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {images.slice(1).map((src, i) => (
+                <div
+                  key={`${src}-${i}`}
+                  className="rounded-2xl overflow-hidden border border-white/10 bg-white/5"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={src}
+                    alt={`${match.name} photo ${i + 2}`}
+                    className="h-40 w-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* actions */}
           <div className="mt-8 flex flex-col sm:flex-row gap-3">
             <Link
-              href={`/chat/${match.id}`}
+              href={`/chat/${matchId}`}
               className="flex-1 px-6 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition text-center"
             >
               Start chat

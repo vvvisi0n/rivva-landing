@@ -30,7 +30,7 @@ export default function LikedMatchCard({
       </p>
 
       <div className="flex flex-wrap gap-1.5 mt-3">
-        {match.tags.map((t) => (
+        {(match.vibeTags ?? []).map((t) => (
           <span
             key={t}
             className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/75"
