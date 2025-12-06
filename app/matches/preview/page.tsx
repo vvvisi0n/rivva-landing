@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import LumiOrb from "@/components/LumiOrb";
 import TypingBubble from "@/components/TypingBubble";
-import LumiVoiceButton from "@/components/LumiVoiceButton";
 
 type Option = { id: string; text: string; score: number };
 type OnboardingState = {
@@ -43,7 +42,6 @@ const COMMS_LABEL: Record<OnboardingState["communication"], string> = {
 };
 
 function makeMockMatches(score: number, ob: OnboardingState): Match[] {
-  // Use score to weight compatibility a bit
   const base = Math.min(92, 60 + score * 3);
 
   return [
@@ -96,6 +94,7 @@ export default function MatchPreviewPage() {
   const [answers, setAnswers] = useState<Record<string, Option> | null>(null);
   const [score, setScore] = useState<number | null>(null);
   const [isThinking, setIsThinking] = useState(true);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   useEffect(() => {
     const rawOb = sessionStorage.getItem("rivva_onboarding");
@@ -115,7 +114,6 @@ export default function MatchPreviewPage() {
       router.replace("/onboarding");
       return;
     } finally {
-      // Lumi "thinking" animation
       setTimeout(() => setIsThinking(false), 900);
     }
   }, [router]);
@@ -128,12 +126,30 @@ export default function MatchPreviewPage() {
   const summaryText = useMemo(() => {
     if (!ob || score == null) return "";
     const best = matches[0];
-    return `Okay ${ob.name}. Based on your vibe and your quiz score, 
-    I found a few people you might actually enjoy. 
-    Your top match right now is ${best?.name}. 
-    You’re looking for ${GOAL_LABEL[ob.goal]}, and your communication style is ${COMMS_LABEL[ob.communication]}. 
-    These matches reflect that. Want to keep going?`;
+    return `Okay ${ob.name}. Based on your vibe and your quiz score, I found a few people you might actually enjoy. Your top match right now is ${best?.name}. You’re looking for ${GOAL_LABEL[ob.goal]}, and your communication style is ${COMMS_LABEL[ob.communication]}. These matches reflect that. Want to keep going?`;
   }, [ob, score, matches]);
+
+  function speakSummary() {
+    if (typeof window === "undefined") return;
+    if (!("speechSynthesis" in window)) {
+      alert("Your browser doesn't support voice playback.");
+      return;
+    }
+    if (!summaryText.trim()) return;
+
+    // stop any current speech first
+    window.speechSynthesis.cancel();
+
+    const utter = new SpeechSynthesisUtterance(summaryText);
+    utter.rate = 1;
+    utter.pitch = 1;
+
+    utter.onstart = () => setIsSpeaking(true);
+    utter.onend = () => setIsSpeaking(false);
+    utter.onerror = () => setIsSpeaking(false);
+
+    window.speechSynthesis.speak(utter);
+  }
 
   if (!ob || score == null || !answers) {
     return (
@@ -160,8 +176,19 @@ export default function MatchPreviewPage() {
             </p>
           </div>
 
+          {/* ✅ Replace LumiVoiceButton with built-in speak */}
           <div className="shrink-0">
-            <LumiVoiceButton textToSpeak={summaryText} />
+            <button
+              onClick={speakSummary}
+              disabled={isSpeaking}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold border transition ${
+                isSpeaking
+                  ? "bg-white/10 text-white/60 border-white/10 cursor-not-allowed"
+                  : "bg-white text-black border-white hover:bg-white/90"
+              }`}
+            >
+              {isSpeaking ? "Playing..." : "Play Lumi Summary"}
+            </button>
           </div>
         </div>
 

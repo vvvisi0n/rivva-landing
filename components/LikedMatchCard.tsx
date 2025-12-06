@@ -1,53 +1,58 @@
 "use client";
 
+import Link from "next/link";
 import type { Match } from "@/lib/matches";
 
-export default function LikedMatchCard({
-  match,
-  onRemove,
-}: {
-  match: Match;
-  onRemove: () => void;
-}) {
+export default function LikedMatchCard({ match }: { match: Match }) {
+  const tags = match.vibeTags ?? [];
+  const location = match.location ?? "";
+  const compatibility = match.compatibility;
+
   return (
-    <div className="rounded-3xl bg-white/5 border border-white/10 p-5 shadow-xl flex flex-col">
-      <div className="flex items-start justify-between gap-2">
+    <Link
+      href={`/matches/${match.id}`}
+      className="block rounded-3xl bg-white/5 border border-white/10 p-5 hover:bg-white/10 transition shadow-xl"
+    >
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h3 className="text-xl font-bold">
-            {match.name}, {match.age}
+          <h3 className="text-lg font-bold">
+            {match.name}
+            {match.age != null ? `, ${match.age}` : ""}
           </h3>
-          <p className="text-xs text-white/60">{match.city}</p>
+
+          {location && (
+            <p className="text-xs text-white/60 mt-1">{location}</p>
+          )}
         </div>
 
-        <div className="text-right">
-          <p className="text-[10px] text-white/50">compat</p>
-          <p className="text-lg font-extrabold">{match.compatibility}%</p>
+        {typeof compatibility === "number" && (
+          <div className="text-right">
+            <p className="text-[11px] text-white/50">compatibility</p>
+            <p className="text-2xl font-extrabold bg-gradient-to-r from-purple-400 to-cyan-300 bg-clip-text text-transparent">
+              {compatibility}%
+            </p>
+          </div>
+        )}
+      </div>
+
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-3">
+          {tags.map((t) => (
+            <span
+              key={t}
+              className="text-xs px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/80"
+            >
+              {t}
+            </span>
+          ))}
         </div>
-      </div>
+      )}
 
-      <p className="text-white/80 text-sm mt-3 leading-relaxed line-clamp-4">
-        {match.bio}
-      </p>
-
-      <div className="flex flex-wrap gap-1.5 mt-3">
-        {(match.vibeTags ?? []).map((t) => (
-          <span
-            key={t}
-            className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/75"
-          >
-            {t}
-          </span>
-        ))}
-      </div>
-
-      <div className="mt-auto pt-4">
-        <button
-          onClick={onRemove}
-          className="w-full px-4 py-2 rounded-xl bg-white/10 border border-white/10 text-sm hover:bg-white/15 transition"
-        >
-          Remove Like
-        </button>
-      </div>
-    </div>
+      {match.bio && (
+        <p className="text-sm text-white/80 mt-3 line-clamp-2">
+          {match.bio}
+        </p>
+      )}
+    </Link>
   );
 }

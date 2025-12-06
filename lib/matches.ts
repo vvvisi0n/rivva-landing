@@ -2,20 +2,26 @@ export type Match = {
   id: string;
   name: string;
 
-  // current / new fields
+  // optional metadata
   age?: number;
   location?: string;
   bio?: string;
+
   images: string[];
+
+  // vibes for openers + reply sim
+  vibe?: "spark" | "grounded" | "deep";
   vibeTags?: string[];
+
+  // compatibility UI (optional)
+  compatibility?: number;
+
+  // inbox / list UI (optional)
   lastMessage?: string;
   lastActive?: string;
 
-  // backwards-compat fields for older pages
-  city?: string;
-  vibe?: string;
-  tags?: string[];
-  compatibility?: number;
+  // profile prompts (optional but used by /matches/[id])
+  prompts?: { q: string; a: string }[];
 };
 
 // Single source of truth mock data
@@ -25,56 +31,58 @@ export const MOCK_MATCHES: Match[] = [
     name: "Ari",
     age: 27,
     location: "NYC",
-    city: "NYC",
     bio: "Low-key foodie. Big on good conversation.",
     images: ["/matches/ari-1.jpg", "/matches/ari-2.jpg"],
+    vibe: "spark",
     vibeTags: ["Chill", "Curious", "Night walks"],
-    vibe: "Warm, playful, and emotionally present.",
-    tags: ["emotionally steady", "fun energy", "intentional"],
     compatibility: 88,
     lastMessage: "You up for tacos this week?",
     lastActive: "2h ago",
+    prompts: [
+      { q: "My perfect weekend is…", a: "Tacos, a long walk, and a movie night." },
+      { q: "A green flag I love is…", a: "Someone who communicates clearly." },
+    ],
   },
   {
     id: "m2",
     name: "Noah",
     age: 30,
     location: "ATL",
-    city: "ATL",
     bio: "Runner, reader, soft life advocate.",
     images: ["/matches/noah-1.jpg"],
+    vibe: "grounded",
     vibeTags: ["Active", "Books", "Coffee"],
-    vibe: "Low ego, high curiosity. Communicates clearly.",
-    tags: ["great communicator", "secure vibe", "values-led"],
     compatibility: 82,
     lastMessage: "That playlist was fire lol",
     lastActive: "5h ago",
+    prompts: [
+      { q: "I’m known for…", a: "Being consistent and easy to talk to." },
+      { q: "My love language is…", a: "Quality time, always." },
+    ],
   },
   {
     id: "m3",
     name: "Zee",
     age: 25,
     location: "LA",
-    city: "LA",
     bio: "Art galleries + rooftop sunsets.",
     images: ["/matches/zee-1.jpg", "/matches/zee-2.jpg"],
+    vibe: "deep",
     vibeTags: ["Creative", "Sunsets", "Museums"],
-    vibe: "Quiet confidence. Shows love through consistency.",
-    tags: ["slow-burn", "loyal", "gentle energy"],
     compatibility: 79,
     lastMessage: "Send me your favorite song rn",
     lastActive: "1d ago",
+    prompts: [
+      { q: "Something I’m proud of…", a: "I’ve rebuilt my life twice." },
+      { q: "A lesson I learned about love…", a: "Slow is better than rushed." },
+    ],
   },
 ];
 
-// Backwards-compatible exports (your pages expect these)
+// Backwards-compatible exports
 export const FEED = MOCK_MATCHES;
 export const MATCHES = MOCK_MATCHES;
 
-/**
- * Deterministic seed for chat UI quirks (typing speed, delays, etc.)
- * Keeps things stable per user+match.
- */
 export function getChatSeed(matchId: string, userId = "local_user") {
   const str = `${userId}:${matchId}`;
   let h = 0;
