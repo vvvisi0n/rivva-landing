@@ -2,12 +2,6 @@
   "version": 4,
   "routes": {
     "/_global-error": {
-      "initialStatus": 500,
-      "initialHeaders": {
-        "x-nextjs-stale-time": "300",
-        "x-nextjs-prerender": "1",
-        "x-next-cache-tags": "_N_T_/layout,_N_T_/_global-error/layout,_N_T_/_global-error/page,_N_T_/_global-error"
-      },
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -33,11 +27,6 @@
     },
     "/_not-found": {
       "initialStatus": 404,
-      "initialHeaders": {
-        "x-nextjs-stale-time": "300",
-        "x-nextjs-prerender": "1",
-        "x-next-cache-tags": "_N_T_/layout,_N_T_/_not-found/layout,_N_T_/_not-found/page,_N_T_/_not-found"
-      },
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -62,11 +51,6 @@
       ]
     },
     "/how-it-works": {
-      "initialHeaders": {
-        "x-nextjs-stale-time": "300",
-        "x-nextjs-prerender": "1",
-        "x-next-cache-tags": "_N_T_/layout,_N_T_/how-it-works/layout,_N_T_/how-it-works/page,_N_T_/how-it-works"
-      },
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -91,11 +75,6 @@
       ]
     },
     "/invite": {
-      "initialHeaders": {
-        "x-nextjs-stale-time": "300",
-        "x-nextjs-prerender": "1",
-        "x-next-cache-tags": "_N_T_/layout,_N_T_/invite/layout,_N_T_/invite/page,_N_T_/invite"
-      },
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -120,11 +99,6 @@
       ]
     },
     "/": {
-      "initialHeaders": {
-        "x-nextjs-stale-time": "300",
-        "x-nextjs-prerender": "1",
-        "x-next-cache-tags": "_N_T_/layout,_N_T_/page,_N_T_/,_N_T_/index"
-      },
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -149,11 +123,6 @@
       ]
     },
     "/privacy": {
-      "initialHeaders": {
-        "x-nextjs-stale-time": "300",
-        "x-nextjs-prerender": "1",
-        "x-next-cache-tags": "_N_T_/layout,_N_T_/privacy/layout,_N_T_/privacy/page,_N_T_/privacy"
-      },
       "experimentalBypassFor": [
         {
           "type": "header",
