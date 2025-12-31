@@ -84,12 +84,22 @@ export default function HomePage() {
             compatibility read — the kind that feels human, not random.
           </p>
 
-          <Link
-            href="/quiz"
-            className="inline-flex items-center justify-center px-7 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-cyan-400 text-black font-semibold hover:opacity-90 transition"
-          >
-            Start Quiz
-          </Link>
+          {/* Primary + Secondary CTAs */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="/quiz"
+              className="inline-flex items-center justify-center px-7 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-cyan-400 text-black font-semibold hover:opacity-90 transition"
+            >
+              Start Quiz
+            </Link>
+
+            <Link
+              href="/discover"
+              className="inline-flex items-center justify-center px-7 py-3 rounded-xl bg-white/10 border border-white/10 text-white font-semibold hover:bg-white/15 transition"
+            >
+              Discover Matches
+            </Link>
+          </div>
 
           <p className="text-xs text-white/50 mt-3">
             No signup required.

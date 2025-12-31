@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { useLumiVoice } from "@/components/useLumiVoice";
+import useLumiVoice from "@/components/useLumiVoice";
 
 type Props = {
   /** Text-to-speech */
@@ -9,13 +9,12 @@ type Props = {
   /** Back-compat alias some pages use */
   text?: string;
 
-  /** Speech-to-text (NOT supported yet by hook, so we no-op) */
+  /** Speech-to-text (hook doesn't expose this yet) */
   onTranscript?: (text: string) => void;
   prompt?: string;
 
   disabled?: boolean;
   className?: string;
-  label?: string;
 };
 
 export default function LumiVoiceButton({
@@ -24,58 +23,46 @@ export default function LumiVoiceButton({
   onTranscript,
   prompt,
   disabled,
-  className = "",
-  label = "Voice",
+  className,
 }: Props) {
   const voice = useLumiVoice();
 
-  const speakText = textToSpeak ?? text ?? "";
+  const handleClick = useCallback(async () => {
+    if (disabled) return;
 
-  const onClick = useCallback(async () => {
-    if (!voice?.supported) return;
+    const ttsText = (textToSpeak ?? text ?? "").trim();
 
-    // If a page tries to use speech-to-text, the hook doesn't support it yet.
-    if (onTranscript) {
-      console.warn(
-        "LumiVoiceButton: speech-to-text requested, but useLumiVoice currently only supports text-to-speech.",
-        { prompt }
-      );
+    // If caller passed text, do TTS.
+    if (ttsText) {
+      voice.speak(ttsText);
       return;
     }
 
-    if (!speakText.trim()) return;
+    // Otherwise STT is not supported by hook yet.
+    // We keep this safe so TS/build never breaks.
+    if (onTranscript) {
+      console.warn("Speech-to-text not implemented in useLumiVoice yet.");
+      // no-op for now
+    }
+  }, [disabled, textToSpeak, text, onTranscript, prompt, voice]);
 
-    voice.speak(speakText);
-  }, [voice, onTranscript, speakText, prompt]);
-
-  const isDisabled =
-    disabled ||
-    !voice?.supported ||
-    (onTranscript ? true : !speakText.trim());
+  const isBusy = voice.status === "speaking";
 
   return (
     <button
       type="button"
-      onClick={onClick}
-      disabled={isDisabled}
-      aria-label={label}
-      title={
-        onTranscript
-          ? "Voice input coming soon"
-          : speakText
-          ? "Speak this out loud"
-          : "Nothing to speak"
+      onClick={handleClick}
+      disabled={disabled || !voice.supported}
+      aria-label="Lumi voice"
+      className={
+        className ??
+        `px-3 py-2 rounded-xl text-xs font-semibold transition border
+         ${disabled || !voice.supported
+           ? "bg-white/10 text-white/50 border-white/10 cursor-not-allowed"
+           : "bg-white/10 text-white border-white/20 hover:bg-white/15"}`
       }
-      className={`shrink-0 px-3 py-2 rounded-xl text-xs font-semibold border transition
-        ${
-          isDisabled
-            ? "bg-white/5 text-white/40 border-white/10 cursor-not-allowed"
-            : "bg-white/10 text-white border-white/15 hover:bg-white/15"
-        }
-        ${className}
-      `}
     >
-      {label}
+      {isBusy ? "Speaking…" : "Listen"}
     </button>
   );
 }

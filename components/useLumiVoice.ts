@@ -1,111 +1,103 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-type VoiceStatus = "idle" | "speaking" | "paused" | "error" | "unsupported";
+export type VoiceStatus = "idle" | "speaking" | "paused";
 
-export function useLumiVoice() {
-  const synthRef = useRef<SpeechSynthesis | null>(null);
-  const utterRef = useRef<SpeechSynthesisUtterance | null>(null);
-
+export default function useLumiVoice() {
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [status, setStatus] = useState<VoiceStatus>("idle");
   const [enabled, setEnabled] = useState(true);
-  const [voiceName, setVoiceName] = useState<string | null>(null);
-
-  // Detect support
-  const supported = useMemo(
-    () => typeof window !== "undefined" && "speechSynthesis" in window,
-    []
-  );
 
   useEffect(() => {
-    if (!supported) {
-      setStatus("unsupported");
-      return;
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+
+    function load() {
+      const v = window.speechSynthesis.getVoices();
+      setVoices(v);
     }
-    synthRef.current = window.speechSynthesis;
 
-    const pickVoice = () => {
-      const voices = synthRef.current?.getVoices() ?? [];
-      if (!voices.length) return;
-
-      // Prefer a friendly US/UK English voice
-      const preferred =
-        voices.find(v => /en-US/i.test(v.lang) && /female|woman|zira|susan|amy|samantha/i.test(v.name)) ||
-        voices.find(v => /en-US/i.test(v.lang)) ||
-        voices.find(v => /en/i.test(v.lang)) ||
-        voices[0];
-
-      if (preferred) setVoiceName(preferred.name);
-    };
-
-    pickVoice();
-    synthRef.current.onvoiceschanged = pickVoice;
+    load();
+    window.speechSynthesis.onvoiceschanged = load;
 
     return () => {
-      if (synthRef.current) synthRef.current.onvoiceschanged = null;
+      window.speechSynthesis.onvoiceschanged = null;
     };
-  }, [supported]);
+  }, []);
 
-  const stop = useCallback(() => {
-    if (!supported || !synthRef.current) return;
-    synthRef.current.cancel();
-    utterRef.current = null;
+  const bestVoice = useMemo(() => {
+    if (!voices.length) return null;
+
+    const preferred = [
+      // macOS / iOS Safari
+      "Samantha",
+      "Ava",
+      "Allison",
+      // Chrome / Edge
+      "Google US English",
+      "Google UK English Female",
+      "Microsoft Aria Online",
+      "Microsoft Jenny Online",
+    ];
+
+    // first try exact name match
+    for (const name of preferred) {
+      const found = voices.find((v) => v.name === name);
+      if (found) return found;
+    }
+
+    // then try any high-quality en voices
+    const en = voices.filter((v) => v.lang.startsWith("en"));
+    const femaleHint = en.find((v) =>
+      /female|woman|girl|samantha|ava|aria|jenny/i.test(v.name)
+    );
+    return femaleHint || en[0] || voices[0];
+  }, [voices]);
+
+  function speak(text: string) {
+    if (!enabled) return;
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const t = text.trim();
+    if (!t) return;
+
+    window.speechSynthesis.cancel();
+
+    const utter = new SpeechSynthesisUtterance(t);
+    if (bestVoice) utter.voice = bestVoice;
+
+    // softer + more natural pacing
+    utter.rate = 0.95;  // slightly slower than default
+    utter.pitch = 1.05; // tiny lift for warmth
+    utter.volume = 1;
+
+    utter.onstart = () => setStatus("speaking");
+    utter.onend = () => setStatus("idle");
+    utter.onerror = () => setStatus("idle");
+
+    window.speechSynthesis.speak(utter);
+  }
+
+  function stop() {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
     setStatus("idle");
-  }, [supported]);
+  }
 
-  const speak = useCallback(
-    (text: string) => {
-      if (!supported) {
-        setStatus("unsupported");
-        return;
-      }
-      if (!enabled) return;
-      if (!synthRef.current) synthRef.current = window.speechSynthesis;
-
-      // Cancel any current speech
-      synthRef.current.cancel();
-
-      const utter = new SpeechSynthesisUtterance(text);
-      utterRef.current = utter;
-
-      const voices = synthRef.current.getVoices();
-      const voice =
-        voices.find(v => v.name === voiceName) ||
-        voices.find(v => /en-US/i.test(v.lang)) ||
-        voices.find(v => /en/i.test(v.lang));
-
-      if (voice) utter.voice = voice;
-
-      utter.rate = 1.0;
-      utter.pitch = 1.05;
-      utter.volume = 1.0;
-
-      utter.onstart = () => setStatus("speaking");
-      utter.onend = () => setStatus("idle");
-      utter.onerror = () => setStatus("error");
-      utter.onpause = () => setStatus("paused");
-      utter.onresume = () => setStatus("speaking");
-
-      synthRef.current.speak(utter);
-    },
-    [supported, enabled, voiceName]
-  );
-
-  const pause = useCallback(() => {
-    if (!supported || !synthRef.current) return;
-    synthRef.current.pause();
+  function pause() {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.pause();
     setStatus("paused");
-  }, [supported]);
+  }
 
-  const resume = useCallback(() => {
-    if (!supported || !synthRef.current) return;
-    synthRef.current.resume();
+  function resume() {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.resume();
     setStatus("speaking");
-  }, [supported]);
+  }
 
   return {
-    supported,
+    supported:
+      typeof window !== "undefined" && "speechSynthesis" in window,
     status,
     enabled,
     setEnabled,
@@ -113,6 +105,6 @@ export function useLumiVoice() {
     stop,
     pause,
     resume,
-    voiceName,
+    voiceName: bestVoice?.name ?? null,
   };
 }
