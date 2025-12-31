@@ -1,71 +1,77 @@
-import type { BlockReason } from "@/lib/safety/blockReasons";
+/**
+ * Local-only blocks (MVP)
+ * Accepts extra args for back-compat with older call sites.
+ */
 
-const BLOCK_KEY = "rivva_blocked_v1";
+function normalizeBlockRecord(r: any): BlockRecord {
+  const matchId = String(r?.matchId ?? r?.id ?? r?.blockedId ?? "");
+  const createdAt = String(r?.createdAt ?? new Date().toISOString());
+  return { matchId, createdAt };
+}
+
+const KEY = "rivva_blocked_users";
+
+function read(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(KEY);
+    const arr = raw ? (JSON.parse(raw) as string[]) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+function write(next: string[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(KEY, JSON.stringify(next));
+  window.dispatchEvent(new Event("storage"));
+}
+
+export function getBlockedIds(): string[] {
+  return read();
+}
+
+export function isBlocked(id: string): boolean {
+  return new Set(read()).has(id);
+}
+
+/**
+ * Back-compat: some parts of the app previously called blockUser(id, reason?, meta?)
+ * We ignore extras and only block by id (local MVP).
+ */
+export function blockUser(id: string, _arg2?: unknown, _arg3?: unknown): boolean {
+  const s = new Set(read());
+  s.add(id);
+  write(Array.from(s));
+  return true;
+}
+
+export function unblockUser(id: string): boolean {
+  const next = read().filter((x) => x !== id);
+  write(next);
+  return true;
+}
+
+export function clearBlocked(): boolean {
+  write([]);
+  return true;
+}
+
+/** -------------------------------------------------
+ * Back-compat exports for settings pages
+ * ------------------------------------------------- */
 
 export type BlockRecord = {
   matchId: string;
-  reason: BlockReason;
-  notes?: string;
-  createdAt: number;
+  id: string;
+  blockedAt: string;
 };
 
-function readAll(): BlockRecord[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(BLOCK_KEY);
-    return raw ? (JSON.parse(raw) as BlockRecord[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeAll(list: BlockRecord[]) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(BLOCK_KEY, JSON.stringify(list));
-    window.dispatchEvent(new Event("storage"));
-  } catch {}
-}
-
-export function isBlocked(matchId: string) {
-  return readAll().some((r) => r.matchId === matchId);
-}
-
-export function getBlockedList() {
-  return readAll().sort((a, b) => b.createdAt - a.createdAt);
-}
-
-export function blockUser(matchId: string, reason: BlockReason, notes?: string) {
-  const list = readAll();
-  if (list.some((r) => r.matchId === matchId)) return;
-
-  list.push({
-    matchId,
-    reason,
-    notes: notes?.trim() ? notes.trim() : undefined,
-    createdAt: Date.now(),
-  });
-
-  writeAll(list);
-}
-
-export function unblockUser(matchId: string) {
-  const list = readAll().filter((r) => r.matchId !== matchId);
-  writeAll(list);
-}
-
-export function clearBlocked() {
-  writeAll([]);
-}
-
-/** Back-compat export (some pages import this name) */
-export function getBlockedIds() {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem("rivva_blocked_ids");
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+export function getBlockedList(): BlockRecord[] {
+  const ids = getBlockedIds();
+  return ids.map((id) => ({
+    id,
+    blockedAt: new Date(0).toISOString(),
+  }));
 }

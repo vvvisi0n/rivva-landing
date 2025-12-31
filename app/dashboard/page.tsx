@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import LumiOrb from "@/components/LumiOrb";
+import RivvaOrb from "@/components/RivvaOrb";
 import TypingBubble from "@/components/TypingBubble";
 import BlueprintCard from "@/components/BlueprintCard";
 import ConnectionForecastCard from "@/components/ConnectionForecastCard";
@@ -254,7 +254,7 @@ export default function DashboardPage() {
   return (
     <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center px-6 py-14">
       <div className="mb-6">
-        <LumiOrb />
+        <RivvaOrb />
       </div>
 
       <div className="w-full max-w-4xl grid gap-6">

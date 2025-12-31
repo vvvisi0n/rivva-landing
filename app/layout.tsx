@@ -1,9 +1,11 @@
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import PrivacyApplier from "@/components/PrivacyApplier";
+import { RivvaColors } from "@/lib/theme/rivvaTheme";
 
 export const metadata = {
   title: "Rivva",
-  description: "AI dating companion powered by emotional intelligence.",
+  description: "intelligence dating companion powered by emotional intelligence.",
 };
 
 export default function RootLayout({
@@ -13,8 +15,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className={`${RivvaColors.background.gradient} min-h-screen text-white`}>
         <Navbar />
+        <PrivacyApplier />
         {children}
       </body>
     </html>

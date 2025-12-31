@@ -1,0 +1,365 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { AnimatePresence, motion, useMotionValue, useTransform } from "framer-motion";
+
+import OnboardingGate from "@/components/OnboardingGate";
+import LumiOrb from "@/components/LumiOrb";
+
+import { MOCK_MATCHES, type Match } from "@/lib/matches";
+import { isLiked, toggleLike } from "@/lib/likes";
+import useLumiVoice from "@/components/useLumiVoice";
+import { getLumiAutoSpeak, getLumiEnabled } from "@/lib/lumiSettings";
+import { generateLumiReason, saveLumiReason } from "@/lib/lumiReasons";
+
+export default function DiscoverPage() {
+  const matches = useMemo(() => MOCK_MATCHES, []);
+  const [i, setI] = useState(0);
+  const [likedIds, setLikedIds] = useState<string[]>([]);
+  const [showMatch, setShowMatch] = useState(false);
+  const [matchedUser, setMatchedUser] = useState<Match | null>(null);
+
+  const { speak } = useLumiVoice();
+
+  useEffect(() => {
+    const seeded = matches.filter((m) => isLiked(m.id)).map((m) => m.id);
+    setLikedIds(seeded);
+  }, [matches]);
+
+  const current: Match | undefined = matches[i];
+  const nextMatch: Match | undefined = matches[i + 1];
+
+  // --- Swipe controls ---
+  const x = useMotionValue(0);
+  const rotate = useTransform(x, [-180, 180], [-10, 10]);
+  const opacity = useTransform(x, [-180, 0, 180], [0.55, 1, 0.55]);
+
+  // Overlay indicators
+  const likeOpacity = useTransform(x, [10, 120], [0, 1]);
+  const passOpacity = useTransform(x, [-120, -10], [1, 0]);
+
+  const SWIPE_THRESHOLD = 120;
+
+  function snapBack() {
+    x.set(0);
+  }
+
+  function handleDragEnd(_: any, info: { offset: { x: number } }) {
+    if (info.offset.x > SWIPE_THRESHOLD) {
+      onLike();
+    } else if (info.offset.x < -SWIPE_THRESHOLD) {
+      onPass();
+    } else {
+      snapBack();
+    }
+  }
+
+  function onPass() {
+    snapBack();
+    setI((prev) => {
+      const next = prev + 1;
+      return next > matches.length ? matches.length : next;
+    });
+  }
+
+  function onLike() {
+    if (!current) return;
+
+    const nextLiked = toggleLike(current.id);
+
+    setLikedIds((prev) => {
+      const has = prev.includes(current.id);
+      if (nextLiked && !has) return [...prev, current.id];
+      if (!nextLiked && has) return prev.filter((v) => v !== current.id);
+      return prev;
+    });
+
+    if (nextLiked) {
+      const reason = generateLumiReason(current);
+      saveLumiReason(current, reason);
+
+      const enabled = getLumiEnabled();
+      const auto = getLumiAutoSpeak();
+
+      if (enabled && auto) {
+        const shortLine =
+          typeof current.compatibility === "number"
+            ? `Noted. ${current.name} feels like a ${current.compatibility}% match. Calm chemistry.`
+            : `Noted. ${current.name} feels like calm chemistry.`;
+
+        speak(shortLine);
+      }
+    }
+
+    // MOCK MATCH LOGIC: 30% chance of "it's a match!"
+    if (nextLiked && Math.random() < 0.3) {
+      setMatchedUser(current);
+      setShowMatch(true);
+    }
+
+    onPass();
+  }
+
+  // END OF FEED VIEW
+  if (!current) {
+    return (
+      <OnboardingGate>
+        <main className="min-h-screen text-white px-6 py-12">
+          <section className="max-w-3xl mx-auto">
+            <header className="flex items-center justify-between mb-8">
+              <div>
+                <h1 className="text-3xl font-bold">Discover</h1>
+                <p className="text-white/60 text-sm mt-1">
+                  You’ve reached the end of your mock feed.
+                </p>
+              </div>
+
+              <div className="scale-75">
+                <LumiOrb />
+              </div>
+            </header>
+
+            <div className="rounded-3xl bg-white/5 border border-white/10 p-8 shadow-xl">
+              <p className="text-white/80 leading-relaxed">
+                More profiles will show up here once we plug in real data.
+              </p>
+
+              <div className="mt-6 flex gap-3">
+                <Link
+                  href="/matches"
+                  className="px-5 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition"
+                >
+                  View Matches
+                </Link>
+                <Link
+                  href="/liked"
+                  className="px-5 py-3 rounded-xl bg-white/10 border border-white/15 font-semibold hover:bg-white/15 transition"
+                >
+                  View Liked
+                </Link>
+              </div>
+            </div>
+          </section>
+        </main>
+      </OnboardingGate>
+    );
+  }
+
+  const tags = current.vibeTags ?? [];
+  const location = current.location ?? "";
+  const age = current.age;
+
+  return (
+    <OnboardingGate>
+      <main className="min-h-screen text-white px-6 py-12">
+        <section className="max-w-3xl mx-auto">
+          <header className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold">Discover</h1>
+              <p className="text-white/60 text-sm mt-1">
+                Swipe through mock profiles while Rivva learns your vibe.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Link href="/settings" className="text-sm text-white/70 hover:text-white">
+                Settings
+              </Link>
+              <div className="scale-75">
+                <LumiOrb />
+              </div>
+            </div>
+          </header>
+
+          <div className="relative">
+            {/* NEXT CARD PREVIEW */}
+            {nextMatch && (
+              <div className="absolute inset-0 translate-y-2 scale-[0.98] rounded-3xl bg-white/3 border border-white/5 shadow-lg" />
+            )}
+
+            {/* ACTIVE SWIPE CARD */}
+            <motion.div
+              className="relative rounded-3xl bg-white/5 border border-white/10 p-6 md:p-8 shadow-xl select-none"
+              style={{ x, rotate, opacity }}
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.9}
+              onDragEnd={handleDragEnd}
+              transition={{ type: "spring", stiffness: 260, damping: 24 }}
+            >
+              {/* LIKE / PASS overlays */}
+              <motion.div
+                style={{ opacity: likeOpacity }}
+                className="pointer-events-none absolute top-5 left-5 px-3 py-1 rounded-xl bg-emerald-400/20 text-emerald-200 ring-1 ring-emerald-400/30 text-sm font-extrabold tracking-wide"
+              >
+                LIKE
+              </motion.div>
+
+              <motion.div
+                style={{ opacity: passOpacity }}
+                className="pointer-events-none absolute top-5 right-5 px-3 py-1 rounded-xl bg-rose-500/20 text-rose-200 ring-1 ring-rose-400/30 text-sm font-extrabold tracking-wide"
+              >
+                PASS
+              </motion.div>
+
+              {/* image */}
+              {current.images?.[0] ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={current.images[0]}
+                  alt={current.name}
+                  className="h-72 w-full rounded-2xl object-cover border border-white/10 mb-5"
+                />
+              ) : (
+                <div className="h-72 w-full rounded-2xl bg-gradient-to-br from-purple-500/30 to-cyan-400/30 border border-white/10 mb-5" />
+              )}
+
+              {/* name + meta */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">
+                    {current.name}
+                    {age != null ? `, ${age}` : ""}
+                  </h2>
+                  {location && <p className="text-sm text-white/60 mt-1">{location}</p>}
+                </div>
+
+                <Link
+                  href={`/matches/${current.id}`}
+                  className="text-sm text-white/70 hover:text-white hover:underline"
+                >
+                  Full profile →
+                </Link>
+              </div>
+
+              {/* tags */}
+              {tags.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {tags.map((t) => (
+                    <span
+                      key={t}
+                      className="text-xs px-3 py-1 rounded-full bg-black/40 border border-white/10 text-white/80"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* bio */}
+              {current.bio && (
+                <p className="text-white/80 leading-relaxed mt-4">{current.bio}</p>
+              )}
+
+              {/* actions */}
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <button
+                  onClick={onPass}
+                  className="px-5 py-3 rounded-xl bg-white/10 border border-white/10 hover:bg-white/15 transition font-semibold"
+                >
+                  Pass
+                </button>
+                <button
+                  onClick={onLike}
+                  className="px-5 py-3 rounded-xl bg-white text-black hover:bg-white/90 transition font-semibold"
+                >
+                  Like
+                </button>
+              </div>
+
+              {/* footer */}
+              <div className="mt-4 text-xs text-white/50 flex justify-between">
+                <span>
+                  {Math.min(i + 1, matches.length)} / {matches.length}
+                </span>
+                <span>Liked: {likedIds.length}</span>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* quick links */}
+          <div className="mt-6 flex gap-3 justify-center">
+            <Link
+              href="/liked"
+              className="px-4 py-2 rounded-xl bg-white/10 border border-white/10 text-sm hover:bg-white/15 transition"
+            >
+              Liked ({likedIds.length})
+            </Link>
+            <Link
+              href="/inbox"
+              className="px-4 py-2 rounded-xl bg-white/10 border border-white/10 text-sm hover:bg-white/15 transition"
+            >
+              Inbox
+            </Link>
+          </div>
+
+          {/* MATCH MODAL */}
+          <AnimatePresence>
+            {showMatch && matchedUser && (
+              <motion.div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <motion.div
+                  className="w-full max-w-md rounded-3xl bg-[#0b0b14] border border-white/10 shadow-2xl p-6"
+                  initial={{ scale: 0.96, y: 10, opacity: 0 }}
+                  animate={{ scale: 1, y: 0, opacity: 1 }}
+                  exit={{ scale: 0.98, y: 10, opacity: 0 }}
+                >
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-extrabold">It’s a match ✨</h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowMatch(false);
+                        setMatchedUser(null);
+                      }}
+                      className="text-sm text-white/60 hover:text-white"
+                    >
+                      Close
+                    </button>
+                  </div>
+
+                  <p className="text-white/60 text-sm mt-2">
+                    You and {matchedUser.name} liked each other. Want to say hi?
+                  </p>
+
+                  <div className="mt-5 flex gap-3">
+                    <Link
+                      href={`/matches/${matchedUser.id}`}
+                      className="flex-1 px-4 py-2.5 rounded-xl bg-white/10 border border-white/10 text-sm font-semibold hover:bg-white/15 transition text-center"
+                      onClick={() => {
+                        setShowMatch(false);
+                        setMatchedUser(null);
+                      }}
+                    >
+                      View profile
+                    </Link>
+
+                    <Link
+                      href="/inbox"
+                      className="flex-1 px-4 py-2.5 rounded-xl bg-white text-black text-sm font-semibold hover:bg-white/90 transition text-center"
+                      onClick={() => {
+                        setShowMatch(false);
+                        setMatchedUser(null);
+                      }}
+                    >
+                      Go to inbox
+                    </Link>
+                  </div>
+
+                  <p className="text-[10px] text-white/40 mt-4">
+                    Mock matching: match chance is randomized for now.
+                  </p>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </section>
+      </main>
+    </OnboardingGate>
+  );
+}

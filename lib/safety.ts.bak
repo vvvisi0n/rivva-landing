@@ -1,0 +1,380 @@
+"use client";
+
+/**
+ * Rivva Safety (Local Mock) — Investigate-first, abuse-resistant.
+ *
+ * Goals:
+ * - A single report never causes a platform-wide block.
+ * - Reporting immediately HIDES the person from the reporter.
+ * - Lumi "investigates" (severity + confidence) using the reported content + reason.
+ * - Platform-wide restriction only occurs when:
+ *   (A) multiple unique reporters AND (B) evidence confidence threshold is met
+ *
+ * This is a localStorage-backed mock to prove UX + logic.
+ * Later this becomes server-side with audit logs + real moderation.
+ */
+
+export type ReportReason =
+  | "harassment"
+  | "hate_speech"
+  | "sexual_harassment"
+  | "threats"
+  | "stalking"
+  | "pressure_personal_info"
+  | "unwanted_sexual_messages"
+  | "explicit_images"
+  | "inappropriate_language"
+  | "spam"
+  | "misrepresentation"
+  | "underage"
+  | "other";
+
+export type ReportCategory = "safety" | "content" | "other";
+
+export type SafetySeverity = "low" | "medium" | "high";
+
+export type InvestigateAction =
+  | "log_only"
+  | "warn_rewrite"
+  | "queue_review"
+  | "temporary_restrict";
+
+export type SafetyInvestigation = {
+  severity: SafetySeverity;
+  confidence: number; // 0-100
+  action: InvestigateAction;
+  notes: string[];
+};
+
+export type Report = {
+  id: string;
+  createdAt: number;
+
+  // Who is reporting (local mock)
+  reporterId: string;
+
+  // Who is being reported (matchId for mock)
+  targetId: string;
+
+  category: ReportCategory;
+  reason: ReportReason;
+
+  // optional context
+  detail?: string;
+  messageSnippet?: string;
+};
+
+type Restriction = {
+  targetId: string;
+  createdAt: number;
+  expiresAt?: number;
+  reason: string;
+  severity: SafetySeverity;
+  confidence: number;
+};
+
+const KEY_REPORTS = "rivva_safety_reports_v1";
+const KEY_BLOCKS = "rivva_safety_blocks_v1"; // reporter-only blocks (hide)
+const KEY_RESTRICTIONS = "rivva_safety_restrictions_v1"; // platform-ish mock restrictions
+const LOCAL_USER_ID = "local_user";
+
+/** Utility */
+function now() {
+  return Date.now();
+}
+function safeParse<T>(raw: string | null, fallback: T): T {
+  try {
+    if (!raw) return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+function getStore<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  return safeParse<T>(localStorage.getItem(key), fallback);
+}
+function setStore<T>(key: string, value: T) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(key, JSON.stringify(value));
+}
+function uid(prefix = "r") {
+  return `${prefix}_${Math.random().toString(16).slice(2)}_${Math.random()
+    .toString(16)
+    .slice(2)}`;
+}
+
+export function clearSafetyData() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(KEY_REPORTS);
+  localStorage.removeItem(KEY_BLOCKS);
+  localStorage.removeItem(KEY_RESTRICTIONS);
+}
+
+/** Reporter-only block/hide */
+export function getBlockedIds(reporterId = LOCAL_USER_ID): string[] {
+  const all = getStore<Record<string, string[]>>(KEY_BLOCKS, {});
+  return all[reporterId] ?? [];
+}
+export function isBlocked(targetId: string, reporterId = LOCAL_USER_ID) {
+  return getBlockedIds(reporterId).includes(targetId);
+}
+export function blockUser(targetId: string, reporterId = LOCAL_USER_ID) {
+  const all = getStore<Record<string, string[]>>(KEY_BLOCKS, {});
+  const prev = all[reporterId] ?? [];
+  if (!prev.includes(targetId)) {
+    all[reporterId] = [...prev, targetId];
+    setStore(KEY_BLOCKS, all);
+  }
+  return true;
+}
+export function unblockUser(targetId: string, reporterId = LOCAL_USER_ID) {
+  const all = getStore<Record<string, string[]>>(KEY_BLOCKS, {});
+  const prev = all[reporterId] ?? [];
+  all[reporterId] = prev.filter((x) => x !== targetId);
+  setStore(KEY_BLOCKS, all);
+}
+
+/** Reports */
+export function getReports(): Report[] {
+  return getStore<Report[]>(KEY_REPORTS, []);
+}
+export function addReport(r: Omit<Report, "id" | "createdAt">): Report {
+  const reports = getReports();
+  const report: Report = { ...r, id: uid("rep"), createdAt: now() };
+  setStore(KEY_REPORTS, [report, ...reports]);
+  return report;
+}
+
+/**
+ * Minimal "trust weighting" mock:
+ * - In real app, we'd use account age, verification, report accuracy, etc.
+ * - Here, all reporters are equal.
+ */
+function reporterWeight(_reporterId: string) {
+  return 1;
+}
+
+/** Restrictions (mock platform-level) */
+export function getRestrictions(): Restriction[] {
+  return getStore<Restriction[]>(KEY_RESTRICTIONS, []);
+}
+function addRestriction(x: Restriction) {
+  const list = getRestrictions();
+  setStore(KEY_RESTRICTIONS, [x, ...list]);
+}
+export function isRestricted(targetId: string) {
+  const list = getRestrictions();
+  const t = now();
+  return list.some((r) => {
+    if (r.targetId !== targetId) return false;
+    if (r.expiresAt && r.expiresAt < t) return false;
+    return true;
+  });
+}
+
+/** Prohibited patterns (simple mock) */
+const SLUR_PATTERNS: RegExp[] = [
+  // NOTE: Keep this lightweight in repo. Real version uses a moderation service.
+  /\bno\s+(blacks?|asians?|arabs?|muslims?|jews?)\b/i,
+  /\b(whites?\s+only|light\s+skin\s+only|dark\s+skin\s+only)\b/i,
+  /\bno\s+(disabled|wheelchair)\b/i,
+  /\bgo\s+back\s+to\s+your\s+country\b/i,
+];
+
+
+const SCAM_PATTERNS: RegExp[] = [
+  /\b(whatsapp|telegram|signal)\b/i,
+  /\b(send|wire|transfer)\s+(money|cash|crypto)\b/i,
+  /\b(bitcoin|usdt|ethereum|wallet|seed phrase)\b/i,
+  /\b(i can’t use this app|text me instead)\b/i,
+  /\bmy camera is broken|i lost my phone\b/i,
+  /\bverification fee|processing fee\b/i,
+  /\bclick (this|the) link\b/i,
+  /\bhttps?:\/\/\S+\b/i,
+];
+
+const COERCION_PATTERNS: RegExp[] = [
+  /\b(nudes|send a pic)\b/i,
+  /\b(if you love me|prove it)\b/i,
+  /\bmeet tonight|come over now\b/i,
+];
+
+const EXCLUSION_PATTERNS: RegExp[] = [
+  /\b(not\s+into|don['’]?t\s+date)\s+(black|asian|arab|muslim|jewish|disabled)\b/i,
+  /\b(only)\s+(white|light\s+skin)\b/i,
+];
+
+/** Lumi investigation */
+export function analyzeReport(input: {
+  reason: ReportReason;
+  detail?: string;
+  messageSnippet?: string;
+}): SafetyInvestigation {
+  const notes: string[] = [];
+  const text = `${input.detail ?? ""}\n${input.messageSnippet ?? ""}`.trim();
+
+  // Default posture: do not punish on ambiguity.
+  let severity: SafetySeverity = "low";
+  let confidence = 10;
+  let action: InvestigateAction = "log_only";
+
+  const hasSlurLike = SLUR_PATTERNS.some((re) => re.test(text));
+  const hasExclusion = EXCLUSION_PATTERNS.some((re) => re.test(text));
+
+  if (hasSlurLike) {
+    severity = "high";
+    confidence = 92;
+    action = "temporary_restrict";
+    notes.push("Detected explicit exclusionary / discriminatory phrasing.");
+  } else if (hasExclusion) {
+    severity = "medium";
+    confidence = 72;
+    action = "queue_review";
+    notes.push("Detected likely exclusionary preference statement.");
+  }
+
+  // Reason-based uplift (still not enough alone)
+  if (input.reason === "hate_speech") {
+    confidence = Math.min(100, confidence + 10);
+    notes.push("Report reason indicates hate/discrimination.");
+    if (severity === "low") {
+      severity = "medium";
+      action = "queue_review";
+    }
+  }
+
+  if (input.reason === "threats" || input.reason === "underage") {
+    severity = "high";
+    confidence = Math.max(confidence, 85);
+    action = "temporary_restrict";
+    notes.push("Fast-track reason (threats/underage).");
+  }
+
+  // If there's no text evidence, keep it non-punitive.
+  if (!text) {
+    confidence = Math.min(confidence, 25);
+    if (action === "temporary_restrict") action = "queue_review";
+    if (severity === "high") severity = "medium";
+    notes.push("No snippet/detail provided; evidence confidence lowered.");
+  }
+
+  // If medium confidence but the language is ambiguous, require review not punishment
+  if (severity === "medium" && confidence < 70) {
+    action = "log_only";
+    notes.push("Ambiguous evidence; logged only.");
+  }
+
+  return { severity, confidence, action, notes };
+}
+
+/**
+ * Decide if we should apply a platform-ish restriction.
+ * Rule: require multiple unique reporters + evidence threshold
+ */
+export function shouldRestrictTarget(targetId: string, investigation: SafetyInvestigation) {
+  const reports = getReports().filter((r) => r.targetId === targetId);
+
+  const uniqueReporters = new Set(reports.map((r) => r.reporterId));
+  const weightedCount = Array.from(uniqueReporters).reduce(
+    (acc, rid) => acc + reporterWeight(rid),
+    0
+  );
+
+  // Hard fast-track (high severity + high confidence)
+  if (investigation.severity === "high" && investigation.confidence >= 85) {
+    return { restrict: true, why: "High severity + high confidence." };
+  }
+
+  // Otherwise need multiple unique reports AND confidence threshold
+  const needsCount = 3;
+  const needsConfidence = 75;
+
+  if (weightedCount >= needsCount && investigation.confidence >= needsConfidence) {
+    return { restrict: true, why: "Threshold met (unique reporters + confidence)." };
+  }
+
+  return { restrict: false, why: "Threshold not met." };
+}
+
+/**
+ * Public API used by pages
+ * - reportUser: logs report + runs Lumi investigation + maybe applies restriction
+ * - analyzeMessage: message-level scan (for chat)
+ */
+export function reportUser(input: {
+  targetId: string;
+  reason: ReportReason;
+  category: ReportCategory;
+  detail?: string;
+  messageSnippet?: string;
+  reporterId?: string;
+}) {
+  const reporterId = input.reporterId ?? LOCAL_USER_ID;
+
+  // Always hide from reporter immediately (safety without punishment)
+  blockUser(input.targetId, reporterId);
+
+  // Log report
+  const report = addReport({
+    reporterId,
+    targetId: input.targetId,
+    reason: input.reason,
+    category: input.category,
+    detail: input.detail,
+    messageSnippet: input.messageSnippet,
+  });
+
+  // Lumi investigation
+  const investigation = analyzeReport({
+    reason: input.reason,
+    detail: input.detail,
+    messageSnippet: input.messageSnippet,
+  });
+
+  // Decide restriction
+  const decision = shouldRestrictTarget(input.targetId, investigation);
+
+  if (decision.restrict && !isRestricted(input.targetId)) {
+    const hours = investigation.severity === "high" ? 24 : 6;
+    addRestriction({
+      targetId: input.targetId,
+      createdAt: now(),
+      expiresAt: now() + hours * 60 * 60 * 1000,
+      reason: decision.why,
+      severity: investigation.severity,
+      confidence: investigation.confidence,
+    });
+  }
+
+  return { report, investigation, decision };
+}
+
+export function analyzeMessage(text: string) {
+  const t = (text ?? "").trim();
+  const hits: string[] = [];
+
+  const hasSlurLike = SLUR_PATTERNS.some((re) => re.test(t));
+  const hasScam = SCAM_PATTERNS.some((re) => re.test(t));
+  const hasCoercion = COERCION_PATTERNS.some((re) => re.test(t));
+  const hasExclusion = EXCLUSION_PATTERNS.some((re) => re.test(t));
+
+  if (hasSlurLike) hits.push("discrimination_explicit");
+  if (hasExclusion) hits.push("discrimination_likely");
+  if (hasScam) hits.push("scam_risk");
+  if (hasCoercion) hits.push("coercion_risk");
+
+  const allow = !hits.includes("discrimination_explicit");
+  const severity: SafetySeverity = hasSlurLike ? "high" : hasExclusion ? "medium" : "low";
+
+  return {
+    allow,
+    severity,
+    hits,
+    message: allow
+      ? (hits.includes("scam_risk") || hits.includes("coercion_risk")
+          ? "This message may be unsafe (scam/coercion risk). Consider keeping chat in-app and avoiding money/links."
+          : null)
+      : "This message includes exclusionary or discriminatory language, which isn’t allowed on Rivva.",
+  };
+}

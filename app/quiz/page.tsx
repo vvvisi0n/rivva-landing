@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import LumiOrb from "@/components/LumiOrb";
+import RivvaOrb from "@/components/RivvaOrb";
 import TypingBubble from "@/components/TypingBubble";
 import LumiVoiceButton from "@/components/LumiVoiceButton";
 
@@ -108,7 +108,7 @@ export default function QuizPage() {
     <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center px-6 py-16">
       {/* Orb + Voice */}
       <div className="mb-8 flex flex-col items-center gap-3">
-        <LumiOrb />
+        <RivvaOrb />
         <LumiVoiceButton />
       </div>
 

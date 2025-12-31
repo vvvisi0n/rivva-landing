@@ -4,18 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import OnboardingGate from "@/components/OnboardingGate";
-import LumiOrb from "@/components/LumiOrb";
+import RivvaOrb from "@/components/RivvaOrb";
 
-import { MOCK_MATCHES, type Match } from "@/lib/matches";
+import { MATCHES, type Match } from "@/lib/matches";
 import { isLiked, toggleLike } from "@/lib/likes";
 
 export default function MatchesPage() {
-  const matches = useMemo(() => MOCK_MATCHES, []);
+  const matches = useMemo(() => MATCHES, []);
 
   const [i, setI] = useState(0);
   const [likedIds, setLikedIds] = useState<string[]>([]);
 
-  // load liked ids from local storage on mount
   useEffect(() => {
     const ids = matches.filter((m) => isLiked(m.id)).map((m) => m.id);
     setLikedIds(ids);
@@ -29,7 +28,8 @@ export default function MatchesPage() {
 
   function onLike() {
     if (!current) return;
-    const nextLiked = toggleLike(current.id);
+
+    toggleLike(current.id);
 
     setLikedIds((prev) => {
       const has = prev.includes(current.id);
@@ -37,7 +37,6 @@ export default function MatchesPage() {
       return [...prev, current.id];
     });
 
-    // move forward after liking
     if (i < matches.length - 1) setI((prev) => prev + 1);
   }
 
@@ -45,7 +44,11 @@ export default function MatchesPage() {
     return (
       <OnboardingGate>
         <main className="min-h-screen bg-[#0b0b14] text-white px-6 py-12 flex items-center justify-center">
-          <div className="text-center">
+          <div className="text-center max-w-md">
+            <div className="flex justify-center mb-6">
+              <RivvaOrb />
+            </div>
+
             <p className="text-white/80 text-lg font-semibold">
               You’ve reached the end of your matches.
             </p>
@@ -61,10 +64,10 @@ export default function MatchesPage() {
                 View Liked ({likedIds.length})
               </Link>
               <Link
-                href="/dashboard"
+                href="/discover"
                 className="px-6 py-3 rounded-xl bg-white/10 border border-white/15 font-semibold hover:bg-white/15 transition"
               >
-                Back to Dashboard
+                Go to Discover
               </Link>
             </div>
           </div>
@@ -81,7 +84,6 @@ export default function MatchesPage() {
     <OnboardingGate>
       <main className="min-h-screen bg-[#0b0b14] text-white px-6 py-12">
         <section className="max-w-xl mx-auto">
-          {/* Header */}
           <header className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-3xl font-bold">Your Matches</h1>
@@ -90,22 +92,19 @@ export default function MatchesPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <Link
-                href="/settings"
-                className="text-sm text-white/70 hover:text-white"
-              >
-                Profile
+            <div className="flex items-center gap-4">
+              <Link href="/settings" className="text-sm text-white/70 hover:text-white">
+                Settings
               </Link>
-              <div className="scale-75">
-                <LumiOrb />
+              <div className="scale-75 rivva-orb">
+                <RivvaOrb />
               </div>
             </div>
           </header>
 
-          {/* Single match card */}
+
+
           <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl">
-            {/* Image */}
             <div className="rounded-2xl overflow-hidden bg-black/30 border border-white/10">
               <img
                 src={current.images?.[0] ?? "/matches/placeholder.jpg"}
@@ -114,15 +113,18 @@ export default function MatchesPage() {
               />
             </div>
 
-            {/* Info */}
             <div className="mt-5">
               <h2 className="text-2xl font-bold">
                 {current.name}
                 {current.age ? `, ${current.age}` : ""}
               </h2>
 
-              {location && (
-                <p className="text-white/60 text-sm mt-1">{location}</p>
+              {(location || current.lastActive) && (
+                <p className="text-white/60 text-sm mt-1">
+                  {location}
+                  {location && current.lastActive ? " • " : ""}
+                  {current.lastActive}
+                </p>
               )}
 
               {tags.length > 0 && (
@@ -144,9 +146,9 @@ export default function MatchesPage() {
                 </p>
               )}
 
-              {/* Actions */}
               <div className="mt-6 grid grid-cols-2 gap-3">
                 <button
+                  type="button"
                   onClick={onPass}
                   className="px-5 py-3 rounded-xl bg-white/10 border border-white/10 hover:bg-white/15 transition font-semibold"
                 >
@@ -154,33 +156,38 @@ export default function MatchesPage() {
                 </button>
 
                 <button
+                  type="button"
                   onClick={onLike}
-                  className={`px-5 py-3 rounded-xl font-semibold transition ${
-                    liked
-                      ? "bg-white text-black hover:bg-white/90"
-                      : "bg-white text-black hover:bg-white/90"
-                  }`}
+                  className="px-5 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition"
                 >
                   {liked ? "Liked ✓" : "Like"}
                 </button>
               </div>
 
-              {/* Footer */}
-              <div className="mt-4 text-xs text-white/50 flex justify-between">
+              <div className="mt-4 flex items-center justify-between text-xs text-white/50">
                 <span>
                   {i + 1} / {matches.length}
                 </span>
-                <Link
-                  href={`/matches/${current.id}`}
-                  className="hover:underline"
-                >
-                  View full profile
-                </Link>
+
+                <div className="flex items-center gap-4">
+                  <Link
+                    href={`/matches/${current.id}`}
+                    className="text-sm text-white/70 hover:text-white hover:underline"
+                  >
+                    Full profile →
+                  </Link>
+
+                  <Link
+                    href={`/matches/${current.id}#why-match`}
+                    className="text-xs text-white/50 hover:text-white/80 hover:underline"
+                  >
+                    Why we matched →
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Quick links */}
           <div className="mt-6 flex gap-3 justify-center">
             <Link
               href="/liked"
@@ -188,6 +195,14 @@ export default function MatchesPage() {
             >
               Liked ({likedIds.length})
             </Link>
+
+            <Link
+              href="/discover"
+              className="px-4 py-2 rounded-xl bg-white/10 border border-white/10 text-sm hover:bg-white/15 transition"
+            >
+              Discover
+            </Link>
+
             <Link
               href="/inbox"
               className="px-4 py-2 rounded-xl bg-white/10 border border-white/10 text-sm hover:bg-white/15 transition"

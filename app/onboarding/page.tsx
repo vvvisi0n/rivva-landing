@@ -1,117 +1,142 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import LumiOrb from "@/components/LumiOrb";
-import { loadProfile, saveProfile, UserProfile } from "@/lib/profile";
+
+import { loadProfile, saveProfile, type UserProfile } from "@/lib/profile";
+import { ABOUT_ME_OPTIONS, LOOKING_FOR_OPTIONS } from "@/lib/profileOptions";
+import MultiSelectChips from "@/components/MultiSelectChips";
+import RivvaOrb from "@/components/RivvaOrb";
 
 export default function OnboardingPage() {
   const router = useRouter();
 
   const [name, setName] = useState("");
-  const [city, setCity] = useState("");
-  const [lookingFor, setLookingFor] =
-    useState<UserProfile["lookingFor"]>("open");
+  const [lookingFor, setLookingFor] = useState<UserProfile["lookingFor"]>("open");
   const [pace, setPace] = useState<UserProfile["pace"]>("balanced");
+
+  const [aboutMeTags, setAboutMeTags] = useState<string[]>([]);
+  const [lookingForTags, setLookingForTags] = useState<string[]>([]);
 
   useEffect(() => {
     const existing = loadProfile();
-    if (existing) {
-      setName(existing.name || "");
-      setCity(existing.city || "");
-      setLookingFor(existing.lookingFor || "open");
-      setPace(existing.pace || "balanced");
-    }
+    if (!existing) return;
+
+    setName(existing.name || "");
+    setLookingFor(existing.lookingFor || "open");
+    setPace(existing.pace || "balanced");
+    setAboutMeTags(existing.aboutMeTags || []);
+    setLookingForTags(existing.lookingForTags || []);
   }, []);
 
+  const canContinue = useMemo(() => {
+    return name.trim().length >= 2;
+  }, [name]);
+
   function handleContinue() {
-    const profile: UserProfile = {
+    if (!canContinue) return;
+
+    saveProfile({
       name: name.trim(),
-      city: city.trim(),
+      city: "",
       lookingFor,
       pace,
-      quizTier: loadProfile()?.quizTier,
-    };
+      aboutMeTags,
+      lookingForTags,
+    });
 
-    saveProfile(profile);
-    router.push("/matches");
+    router.replace("/matches/preview");
   }
 
   return (
-    <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center px-6 py-16">
-      <div className="mb-6">
-        <LumiOrb />
-      </div>
+    <main className="min-h-screen bg-[#0b0b14] text-white px-6 py-12">
+      <section className="max-w-3xl mx-auto">
+        <header className="flex items-center justify-between mb-8">
+          <div>
+            <p className="text-xs uppercase tracking-wider text-white/50">
+              Quick setup
+            </p>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Let’s start with the basics.
+            </h1>
+            <p className="text-sm text-white/60 mt-2">
+              Rivva uses geolocation in the background, so you don’t have to type your city.
+            </p>
+          </div>
+          <div className="scale-75 rivva-orb">
+            <RivvaOrb />
+          </div>
+        </header>
 
-      <div className="w-full max-w-xl bg-white/5 border border-white/10 rounded-3xl p-8 shadow-xl">
-        <h1 className="text-3xl font-bold mb-2">Quick Setup</h1>
-        <p className="text-white/70 mb-8">
-          Lumi uses this to tune your matches.
-        </p>
+        <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl space-y-6">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-white/80">Name</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="What should Lumi call you?"
+              className="w-full rounded-xl bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-emerald-400"
+            />
+          </div>
 
-        <label className="block text-sm text-white/70 mb-2">Your name</label>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Victor"
-          className="w-full mb-6 bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-white/40"
-        />
-
-        <label className="block text-sm text-white/70 mb-2">City</label>
-        <input
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-          placeholder="e.g. Atlanta"
-          className="w-full mb-6 bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-white/40"
-        />
-
-        <label className="block text-sm text-white/70 mb-2">
-          What are you looking for?
-        </label>
-        <div className="grid grid-cols-3 gap-2 mb-6">
-          {(["serious", "open", "casual"] as const).map((v) => (
-            <button
-              key={v}
-              onClick={() => setLookingFor(v)}
-              className={`px-3 py-2 rounded-xl border text-sm transition
-                ${
-                  lookingFor === v
-                    ? "bg-white text-black border-white"
-                    : "bg-white/5 border-white/10 hover:bg-white/10"
-                }`}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-white/80">
+              What are you looking for?
+            </label>
+            <select
+              value={lookingFor}
+              onChange={(e) => setLookingFor(e.target.value as UserProfile["lookingFor"])}
+              className="w-full rounded-xl bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-emerald-400"
             >
-              {v === "serious" ? "Serious" : v === "open" ? "Open" : "Casual"}
-            </button>
-          ))}
-        </div>
+              <option value="serious">Serious relationship</option>
+              <option value="open">Open to connection</option>
+              <option value="casual">Casual / low pressure</option>
+            </select>
+          </div>
 
-        <label className="block text-sm text-white/70 mb-2">
-          Relationship pace
-        </label>
-        <div className="grid grid-cols-3 gap-2 mb-8">
-          {(["slow", "balanced", "fast"] as const).map((v) => (
-            <button
-              key={v}
-              onClick={() => setPace(v)}
-              className={`px-3 py-2 rounded-xl border text-sm transition
-                ${
-                  pace === v
-                    ? "bg-white text-black border-white"
-                    : "bg-white/5 border-white/10 hover:bg-white/10"
-                }`}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-white/80">
+              What’s your pacing style?
+            </label>
+            <select
+              value={pace}
+              onChange={(e) => setPace(e.target.value as UserProfile["pace"])}
+              className="w-full rounded-xl bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-emerald-400"
             >
-              {v === "slow" ? "Slow" : v === "balanced" ? "Balanced" : "Fast"}
-            </button>
-          ))}
-        </div>
+              <option value="slow">Slow + intentional</option>
+              <option value="balanced">Balanced</option>
+              <option value="fast">Fast mover</option>
+            </select>
+          </div>
 
-        <button
-          onClick={handleContinue}
-          className="w-full bg-white text-black font-semibold py-3 rounded-xl hover:bg-white/90 transition"
-        >
-          Continue to Matches
-        </button>
-      </div>
+          <MultiSelectChips
+            label="About me"
+            helper="This helps Rivva match your emotional vibe, not just your photos."
+            options={ABOUT_ME_OPTIONS.map(o => o.id)}
+            value={aboutMeTags}
+            onChange={setAboutMeTags}
+            max={8}
+          />
+
+          <MultiSelectChips
+            label="What I’m looking for"
+            helper="Tell Rivva what “a good match” actually means to you."
+            options={LOOKING_FOR_OPTIONS.map(o => o.id)}
+            value={lookingForTags}
+            onChange={setLookingForTags}
+            max={8}
+          />
+
+          <button
+            type="button"
+            onClick={handleContinue}
+            disabled={!canContinue}
+            className="w-full rounded-full bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-emerald-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-emerald-500/40"
+          >
+            Continue
+          </button>
+        </div>
+      </section>
     </main>
   );
 }

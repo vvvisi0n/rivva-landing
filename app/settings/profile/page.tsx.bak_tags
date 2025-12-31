@@ -1,0 +1,174 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+
+import OnboardingGate from "@/components/OnboardingGate";
+import LumiOrb from "@/components/LumiOrb";
+
+import MultiSelectChips from "@/components/profile/MultiSelectChips";
+import { ABOUT_ME_OPTIONS, LOOKING_FOR_OPTIONS } from "@/lib/profileOptions";
+import { loadProfile, saveProfile, type UserProfile } from "@/lib/profile";
+
+function SectionTitle({ title, desc }: { title: string; desc?: string }) {
+  return (
+    <div className="mb-4">
+      <h1 className="text-2xl font-bold">{title}</h1>
+      {desc && <p className="text-sm text-white/60 mt-1">{desc}</p>}
+    </div>
+  );
+}
+
+export default function SettingsProfilePage() {
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  const [aboutMeTags, setAboutMeTags] = useState<string[]>([]);
+  const [lookingForTags, setLookingForTags] = useState<string[]>([]);
+  const [aboutMeText, setAboutMeText] = useState("");
+  const [lookingForText, setLookingForText] = useState("");
+
+  useEffect(() => {
+    const p = loadProfile();
+    setProfile(p);
+
+    setAboutMeTags(p.aboutMeTags ?? []);
+    setLookingForTags(p.lookingForTags ?? []);
+    setAboutMeText(p.aboutMeText ?? "");
+    setLookingForText(p.lookingForText ?? "");
+  }, []);
+
+  const canSave = useMemo(() => {
+    return !!profile;
+  }, [profile]);
+
+  function doSave() {
+    if (!profile) return;
+
+    const next: UserProfile = {
+      ...profile,
+      aboutMeTags,
+      lookingForTags,
+      aboutMeText: aboutMeText.trim() || undefined,
+      lookingForText: lookingForText.trim() || undefined,
+    };
+
+    saveProfile(next);
+    setProfile(next);
+
+    setSaved(true);
+    setTimeout(() => setSaved(false), 900);
+
+    // broadcast change for other tabs/components
+    try {
+      window.dispatchEvent(new Event("storage"));
+    } catch {}
+  }
+
+  return (
+    <OnboardingGate>
+      <main className="min-h-screen bg-[#0b0b14] text-white px-6 py-12">
+        <section className="max-w-3xl mx-auto">
+          <header className="flex items-center justify-between mb-8">
+            <Link href="/settings" className="text-sm text-white/70 hover:text-white">
+              ← Back to Settings
+            </Link>
+            <div className="scale-75">
+              <LumiOrb />
+            </div>
+          </header>
+
+          <SectionTitle
+            title="Profile"
+            desc="Make Rivva feel like you — and make matching more transparent."
+          />
+
+          <div className="space-y-5">
+            <MultiSelectChips
+              title="About me"
+              desc="Pick what you want people to feel when they meet you."
+              options={ABOUT_ME_OPTIONS}
+              value={aboutMeTags}
+              onChange={setAboutMeTags}
+              max={10}
+            />
+
+            <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl">
+              <p className="text-sm font-semibold">About me (in your words)</p>
+              <p className="text-xs text-white/60 mt-1">
+                Optional. This helps “Why We Matched” sound real, not generic.
+              </p>
+
+              <textarea
+                value={aboutMeText}
+                onChange={(e) => setAboutMeText(e.target.value)}
+                rows={5}
+                placeholder="Example: I’m calm, intentional, and I value emotional safety. I’m also goofy once I’m comfortable."
+                className="mt-4 w-full rounded-2xl bg-black/30 border border-white/10 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-violet-400/60 placeholder:text-white/40 resize-none"
+              />
+            </div>
+
+            <MultiSelectChips
+              title="What I’m looking for"
+              desc="Signal your intent clearly (this is a big Rivva advantage)."
+              options={LOOKING_FOR_OPTIONS}
+              value={lookingForTags}
+              onChange={setLookingForTags}
+              max={10}
+            />
+
+            <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl">
+              <p className="text-sm font-semibold">What I’m looking for (in your words)</p>
+              <p className="text-xs text-white/60 mt-1">
+                Optional. Helps Rivva avoid mismatches and keeps scammers from “mirroring” generic tags.
+              </p>
+
+              <textarea
+                value={lookingForText}
+                onChange={(e) => setLookingForText(e.target.value)}
+                rows={5}
+                placeholder="Example: I want consistency, honest communication, and someone who respects boundaries without taking it personal."
+                className="mt-4 w-full rounded-2xl bg-black/30 border border-white/10 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-violet-400/60 placeholder:text-white/40 resize-none"
+              />
+            </div>
+
+            <div className="rounded-3xl bg-black/30 border border-white/10 p-6 shadow-xl">
+              <p className="text-sm font-semibold">Privacy</p>
+              <p className="text-xs text-white/60 mt-1">
+                Your “About me” and “Looking for” preferences are used to personalize matching and “Why We Matched.”
+                In this MVP, everything is stored locally on your device.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={doSave}
+                disabled={!canSave}
+                className={
+                  "px-5 py-3 rounded-2xl font-semibold transition " +
+                  (canSave
+                    ? "bg-white text-black hover:bg-white/90"
+                    : "bg-white/10 text-white/50 border border-white/10 cursor-not-allowed")
+                }
+              >
+                Save
+              </button>
+
+              {saved && <span className="text-sm text-emerald-200">Saved ✓</span>}
+
+              <div className="flex-1" />
+
+              <Link
+                href="/matches"
+                className="text-sm text-white/60 hover:text-white"
+              >
+                Back to matches →
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
+    </OnboardingGate>
+  );
+}

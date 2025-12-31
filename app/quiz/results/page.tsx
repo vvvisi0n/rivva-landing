@@ -1,158 +1,82 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import LumiOrb from "@/components/LumiOrb";
-import TypingBubble from "@/components/TypingBubble";
-import LumiVoiceButton from "@/components/LumiVoiceButton";
+import { useEffect, useMemo, useState } from "react";
+import RivvaOrb from "@/components/RivvaOrb";
+import useLumiVoice from "@/components/useLumiVoice";
+import { loadProfile } from "@/lib/profile";
 
-type Option = { id: string; text: string; score: number };
-type QuestionAnswerMap = Record<string, Option>;
-
-type ResultProfile = {
+type QuizResult = {
   title: string;
   subtitle: string;
   description: string;
   strengths: string[];
   growth: string[];
-  vibeLine: string;
 };
 
-function getProfile(score: number): ResultProfile {
-  // total possible = 12 (4 qs * max 3)
-  if (score >= 10) {
-    return {
-      title: "The Emotionally Aligned",
-      subtitle: "You lead with safety, clarity, and depth.",
-      description:
-        "You’re tuned into emotional signals and you care about how love *feels*, not just how it looks. You don’t rush connection—you build something real.",
-      strengths: [
-        "High emotional awareness",
-        "Strong communication instincts",
-        "Clear sense of relationship values",
-      ],
-      growth: [
-        "Letting passion in without overthinking",
-        "Allowing people to meet you halfway",
-      ],
-      vibeLine:
-        "Your love style is steady, intentional, and quietly powerful.",
-    };
+function safeReadJSON<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
   }
+}
 
-  if (score >= 7) {
-    return {
-      title: "The Warm Connector",
-      subtitle: "You want depth, but also fun.",
-      description:
-        "You’re balanced. You like chemistry and emotional alignment, and you know relationships should feel safe *and* exciting.",
-      strengths: [
-        "Emotionally open",
-        "Naturally curious",
-        "Good at building trust over time",
-      ],
-      growth: [
-        "Speaking needs earlier",
-        "Not shrinking your standards to keep peace",
-      ],
-      vibeLine:
-        "You’re the kind of person people feel comfortable being real with.",
-    };
-  }
-
-  if (score >= 4) {
-    return {
-      title: "The Slow-Burn Romantic",
-      subtitle: "You warm up through consistency.",
-      description:
-        "You don’t fall fast—you fall *right*. You need rapport and a sense of emotional safety before you fully open up.",
-      strengths: [
-        "Grounded and realistic about love",
-        "Good judge of character over time",
-        "Loyal once you commit",
-      ],
-      growth: [
-        "Letting yourself be seen sooner",
-        "Not waiting too long to express interest",
-      ],
-      vibeLine:
-        "Your best relationships grow from calm consistency, not chaos.",
-    };
-  }
-
+function buildFallbackResult(): QuizResult {
   return {
-    title: "The Chemistry Seeker",
-    subtitle: "You feel first, process later.",
+    title: "Compatibility read",
+    subtitle: "A calmer signal.",
     description:
-      "You’re driven by attraction, energy, and momentum. You want a relationship that feels alive—and you value the spark.",
-    strengths: [
-      "Passionate and expressive",
-      "Reads vibe quickly",
-      "Knows what you want when it feels right",
-    ],
-    growth: [
-      "Slowing down before attaching",
-      "Checking alignment beyond the spark",
-    ],
-    vibeLine:
-      "You love hard. Lumi will help you love smart too.",
+      "Rivva is designed to reduce noise and surface alignment. Your results will appear here after you complete the quiz.",
+    strengths: ["Clarity", "Intentional pacing", "Emotional awareness"],
+    growth: ["Consistency over intensity", "Boundaries that feel natural", "Choosing calm over chaos"],
   };
 }
 
 export default function QuizResultsPage() {
-  const [score, setScore] = useState<number | null>(null);
-  const [answers, setAnswers] = useState<QuestionAnswerMap | null>(null);
-  const [loading, setLoading] = useState(true);
+  const lumi = useLumiVoice();
+  const [result, setResult] = useState<QuizResult | null>(null);
 
+  // Pull what we can from local storage. Keep this resilient.
   useEffect(() => {
-    try {
-      const storedScore = sessionStorage.getItem("rivva_quiz_score");
-      const storedAnswers = sessionStorage.getItem("rivva_quiz_answers");
-
-      if (storedScore) setScore(Number(storedScore));
-      if (storedAnswers) setAnswers(JSON.parse(storedAnswers));
-
-      setLoading(false);
-    } catch {
-      setLoading(false);
-    }
+    const stored = safeReadJSON<QuizResult>("rivva_quiz_result");
+    setResult(stored ?? buildFallbackResult());
   }, []);
 
-  const profile = useMemo(() => {
-    if (score == null) return null;
-    return getProfile(score);
-  }, [score]);
+  const profile = useMemo(() => loadProfile(), []);
 
-  // Natural Lumi voice script
-  const voiceScript = profile
-    ? `Alright… I’ve got your vibe. 
-You’re ${profile.title}. ${profile.subtitle}
-Here’s the real takeaway: ${profile.vibeLine}
-If you want, you can retake the quiz anytime and see how your vibe evolves.`
-    : "";
-
-  if (loading) {
+  const voiceScript = useMemo(() => {
+    if (!result) return "";
+    const name = profile?.name ? `${profile.name}. ` : "";
     return (
-      <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center justify-center px-6 py-16">
-        <LumiOrb />
-        <TypingBubble className="mt-6" label="Lumi is assembling your results…" />
-      </main>
+      `${name}${result.title}. ` +
+      `${result.subtitle}. ` +
+      `${result.description} ` +
+      `Strengths: ${result.strengths.join(", ")}. ` +
+      `Growth edge: ${result.growth.join(", ")}.`
     );
-  }
+  }, [result, profile?.name]);
 
-  if (!profile || score == null) {
+  useEffect(() => {
+    // Only speak if user opted in elsewhere (we’ll respect your “off by default” rule)
+    if (!result) return;
+    const autoSpeak = (() => {
+      try {
+        return localStorage.getItem("rivva_auto_speak") === "1";
+      } catch {
+        return false;
+      }
+    })();
+    if (!autoSpeak) return;
+
+    if (voiceScript.trim()) lumi.speak(voiceScript);
+  }, [lumi, voiceScript, result]);
+
+  if (!result) {
     return (
-      <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center justify-center px-6 py-16 text-center">
-        <h1 className="text-3xl font-semibold mb-3">No results found</h1>
-        <p className="text-white/70 mb-6">
-          Looks like the quiz data isn’t here. Try taking the quiz again.
-        </p>
-        <Link
-          href="/quiz"
-          className="px-6 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition"
-        >
-          Retake Quiz
-        </Link>
+      <main className="min-h-screen bg-[#0b0b14] text-white flex items-center justify-center px-6 py-16">
+        <p className="text-white/70">Loading.</p>
       </main>
     );
   }
@@ -160,73 +84,57 @@ If you want, you can retake the quiz anytime and see how your vibe evolves.`
   return (
     <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center px-6 py-16">
       <div className="mb-8">
-        <LumiOrb />
+        <RivvaOrb />
       </div>
 
       <div className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-3xl p-8 shadow-xl text-center">
-        <p className="text-white/60 text-sm mb-2">Your Lumi Compatibility Read</p>
+        <p className="text-white/60 text-sm mb-2">Your compatibility read</p>
 
-        <h1 className="text-3xl md:text-4xl font-bold mb-2">
-          {profile.title}
-        </h1>
-
-        <p className="text-white/80 text-lg mb-6">
-          {profile.subtitle}
-        </p>
+        <h1 className="text-3xl md:text-4xl font-semibold mb-2">{result.title}</h1>
+        <p className="text-white/80 text-lg mb-6">{result.subtitle}</p>
 
         <div className="bg-white/5 border border-white/10 rounded-2xl p-5 text-left">
-          <p className="text-white/80 leading-relaxed">
-            {profile.description}
-          </p>
+          <p className="text-white/80 leading-relaxed">{result.description}</p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-4 mt-6 text-left">
           <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-            <h3 className="font-semibold mb-2">Your strengths</h3>
+            <h3 className="font-semibold mb-2">Strengths</h3>
             <ul className="list-disc list-inside text-white/70 space-y-1">
-              {profile.strengths.map((s) => (
+              {result.strengths.map((s) => (
                 <li key={s}>{s}</li>
               ))}
             </ul>
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-            <h3 className="font-semibold mb-2">Your growth edge</h3>
+            <h3 className="font-semibold mb-2">Growth edge</h3>
             <ul className="list-disc list-inside text-white/70 space-y-1">
-              {profile.growth.map((g) => (
+              {result.growth.map((g) => (
                 <li key={g}>{g}</li>
               ))}
             </ul>
           </div>
         </div>
 
-        <p className="text-white/80 mt-6 font-medium">
-          {profile.vibeLine}
-        </p>
-
-        {/* Lumi voice */}
-        <div className="mt-6 flex justify-center">
-          <LumiVoiceButton textToSpeak={voiceScript} />
-
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
+        <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href="/quiz"
-            className="px-6 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition"
+            className="px-6 py-3 rounded-2xl bg-white text-black font-semibold hover:bg-white/90 transition"
           >
-            Retake Quiz
+            Retake quiz
           </Link>
+
           <Link
-            href="/"
-            className="px-6 py-3 rounded-xl bg-white/10 border border-white/15 font-semibold hover:bg-white/15 transition"
+            href="/settings/accessibility"
+            className="px-6 py-3 rounded-2xl bg-white/10 border border-white/10 text-white font-semibold hover:bg-white/15 transition"
           >
-            Back Home
+            Auto speak settings
           </Link>
         </div>
 
-        <p className="text-xs text-white/50 mt-5">
-          Score: {score} / 12
+        <p className="text-xs text-white/45 mt-4">
+          Rivva speaks only if you turn it on. Quiet by default.
         </p>
       </div>
     </main>

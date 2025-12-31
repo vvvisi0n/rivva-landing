@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import OnboardingGate from "@/components/OnboardingGate";
-import LumiOrb from "@/components/LumiOrb";
+import RivvaOrb from "@/components/RivvaOrb";
 
 type VibeEntry = {
   date: string;
@@ -58,8 +58,8 @@ export default function VibeCheckPage() {
             <Link href="/matches" className="text-sm text-white/70 hover:text-white">
               ← Back to matches
             </Link>
-            <div className="scale-75">
-              <LumiOrb />
+            <div className="scale-75 rivva-orb">
+              <RivvaOrb />
             </div>
           </header>
 

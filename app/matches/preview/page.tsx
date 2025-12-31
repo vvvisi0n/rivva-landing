@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import LumiOrb from "@/components/LumiOrb";
+import RivvaOrb from "@/components/RivvaOrb";
 import TypingBubble from "@/components/TypingBubble";
 
 type Option = { id: string; text: string; score: number };
@@ -162,7 +162,7 @@ export default function MatchPreviewPage() {
   return (
     <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center px-6 py-16">
       <div className="mb-8">
-        <LumiOrb />
+        <RivvaOrb />
       </div>
 
       <div className="w-full max-w-3xl bg-white/5 border border-white/10 rounded-3xl p-8 shadow-xl">

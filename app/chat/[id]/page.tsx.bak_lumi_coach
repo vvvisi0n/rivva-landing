@@ -1,0 +1,296 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import OnboardingGate from "@/components/OnboardingGate";
+import LumiOrb from "@/components/LumiOrb";
+import { MOCK_MATCHES, type Match } from "@/lib/matches";
+
+type ChatMsg = {
+  id: string;
+  from: "me" | "them";
+  text: string;
+  ts: number;
+};
+
+type ThreadMeta = {
+  id: string;
+  matchId: string;
+  name: string;
+  lastMessage?: string;
+  lastActive?: string;
+  avatar?: string;
+  unread?: boolean;
+};
+
+function nowId() {
+  return Math.random().toString(36).slice(2);
+}
+
+function toRelative(ts: number) {
+  const diff = Date.now() - ts;
+  const min = Math.floor(diff / 60000);
+  if (min <= 0) return "now";
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const d = Math.floor(hr / 24);
+  return `${d}d ago`;
+}
+
+function upsertThread(match: Match, lastMessage: string, unread: boolean) {
+  try {
+    const KEY = "rivva_inbox_threads";
+    const raw = localStorage.getItem(KEY);
+    const existing: ThreadMeta[] = raw ? JSON.parse(raw) : [];
+
+    const next: ThreadMeta = {
+      id: `t_${match.id}`,
+      matchId: match.id,
+      name: match.name,
+      avatar: match.images?.[0] ?? undefined,
+      lastMessage,
+      lastActive: toRelative(Date.now()),
+      unread,
+    };
+
+    const without = existing.filter((t) => t.matchId !== match.id);
+    localStorage.setItem(KEY, JSON.stringify([next, ...without]));
+  } catch {}
+}
+
+function markThreadRead(matchId: string) {
+  try {
+    const KEY = "rivva_inbox_threads";
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return;
+
+    const existing: ThreadMeta[] = JSON.parse(raw);
+    const updated = existing.map((t) =>
+      t.matchId === matchId ? { ...t, unread: false } : t
+    );
+
+    localStorage.setItem(KEY, JSON.stringify(updated));
+  } catch {}
+}
+
+function pickReply() {
+  const replies = [
+    "Wait I love that question 😄",
+    "Okay that’s actually a vibe.",
+    "You seem easy to talk to.",
+    "Lol why is that kinda sweet?",
+    "That made me smile. Not gonna lie.",
+  ];
+  return replies[Math.floor(Math.random() * replies.length)];
+}
+
+export default function ChatPage({ params }: { params: { id: string } }) {
+  const matchId = params.id;
+
+  const match: Match | undefined = useMemo(
+    () => MOCK_MATCHES.find((m) => m.id === matchId),
+    [matchId]
+  );
+
+  const STORAGE_KEY = `rivva_chat_messages_${matchId}`;
+  const DRAFT_KEY = `rivva_chat_draft_${matchId}`;
+
+  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [input, setInput] = useState("");
+  const [loadedDraft, setLoadedDraft] = useState(false);
+  const [typing, setTyping] = useState(false);
+
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const typingTimerRef = useRef<number | null>(null);
+  const replyTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) setMessages(JSON.parse(raw));
+    } catch {}
+
+    try {
+      const draft = localStorage.getItem(DRAFT_KEY);
+      if (draft && draft.trim()) {
+        setInput(draft);
+        localStorage.removeItem(DRAFT_KEY);
+      }
+    } catch {}
+
+    markThreadRead(matchId);
+
+    setLoadedDraft(true);
+
+    return () => {
+      if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
+      if (replyTimerRef.current) window.clearTimeout(replyTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchId]);
+
+  useEffect(() => {
+    if (!loadedDraft) return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    } catch {}
+  }, [messages, loadedDraft, STORAGE_KEY]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, typing]);
+
+  function send() {
+    const text = input.trim();
+    if (!text || !match) return;
+
+    const msg: ChatMsg = {
+      id: nowId(),
+      from: "me",
+      text,
+      ts: Date.now(),
+    };
+
+    setMessages((prev) => [...prev, msg]);
+    setInput("");
+
+    upsertThread(match, text, false);
+
+    // Cancel existing timers if user sends again quickly
+    if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
+    if (replyTimerRef.current) window.clearTimeout(replyTimerRef.current);
+
+    // Typing indicator
+    setTyping(true);
+
+    // Delay before reply (feels real)
+    const typingDelay = 650 + Math.floor(Math.random() * 700); // 650-1350ms
+    typingTimerRef.current = window.setTimeout(() => {
+      setTyping(false);
+
+      const replyDelay = 200 + Math.floor(Math.random() * 600); // 200-800ms
+      replyTimerRef.current = window.setTimeout(() => {
+        const replyText = pickReply();
+        const reply: ChatMsg = {
+          id: nowId(),
+          from: "them",
+          text: replyText,
+          ts: Date.now(),
+        };
+        setMessages((prev) => [...prev, reply]);
+        upsertThread(match, replyText, true);
+      }, replyDelay);
+    }, typingDelay);
+  }
+
+  if (!match) {
+    return (
+      <OnboardingGate>
+        <main className="min-h-screen text-white px-6 py-12">
+          <section className="max-w-3xl mx-auto">
+            <h1 className="text-2xl font-bold">Chat</h1>
+            <p className="text-white/60 mt-2">Match not found.</p>
+            <div className="mt-6">
+              <Link
+                href="/inbox"
+                className="px-4 py-2 rounded-xl bg-white/10 border border-white/10 text-sm hover:bg-white/15 transition"
+              >
+                Back to inbox
+              </Link>
+            </div>
+          </section>
+        </main>
+      </OnboardingGate>
+    );
+  }
+
+  return (
+    <OnboardingGate>
+      <main className="min-h-screen text-white px-6 py-6">
+        <section className="max-w-3xl mx-auto flex flex-col min-h-[calc(100vh-48px)]">
+          <header className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Link href="/inbox" className="text-sm text-white/70 hover:text-white">
+                ← Inbox
+              </Link>
+              <div>
+                <h1 className="text-lg font-bold leading-none">{match.name}</h1>
+                <p className="text-xs text-white/50 mt-1">Mock chat (local only)</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className="px-3 py-2 rounded-xl bg-white/10 border border-white/10 text-xs font-semibold hover:bg-white/15 transition"
+                onClick={() => alert("Coming soon: Lumi call mode")}
+              >
+                Start call with Lumi
+              </button>
+
+              <div className="scale-75">
+                <LumiOrb />
+              </div>
+            </div>
+          </header>
+
+          <div className="flex-1 rounded-3xl bg-white/5 border border-white/10 p-4 overflow-y-auto">
+            {messages.length === 0 ? (
+              <div className="text-sm text-white/60 px-2 py-6">
+                Say something real. One question is enough.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {messages.map((m) => (
+                  <div
+                    key={m.id}
+                    className={
+                      "max-w-[85%] rounded-2xl px-4 py-2 text-sm leading-relaxed ring-1 " +
+                      (m.from === "me"
+                        ? "ml-auto bg-white text-black ring-white/30"
+                        : "mr-auto bg-black/30 text-white ring-white/10")
+                    }
+                  >
+                    {m.text}
+                  </div>
+                ))}
+
+                {typing ? (
+                  <div className="mr-auto max-w-[70%] rounded-2xl px-4 py-2 text-sm ring-1 bg-black/30 text-white/70 ring-white/10">
+                    <span className="inline-flex gap-1 items-center">
+                      <span className="text-white/60">Typing</span>
+                      <span className="animate-pulse">…</span>
+                    </span>
+                  </div>
+                ) : null}
+
+                <div ref={bottomRef} />
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 rounded-3xl bg-white/5 border border-white/10 p-3 flex gap-2 items-center">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Write a message…"
+              className="flex-1 bg-transparent outline-none text-sm px-2 py-2"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") send();
+              }}
+            />
+
+            <button
+              type="button"
+              onClick={send}
+              className="px-4 py-2 rounded-2xl bg-white text-black text-sm font-semibold hover:bg-white/90 transition"
+            >
+              Send
+            </button>
+          </div>
+        </section>
+      </main>
+    </OnboardingGate>
+  );
+}

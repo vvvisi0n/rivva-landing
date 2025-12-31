@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import LumiOrb from "@/components/LumiOrb";
+import RivvaOrb from "@/components/RivvaOrb";
 
 type FormState = {
   name: string;
@@ -59,7 +59,7 @@ export default function ProfileSetupPage() {
   return (
     <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center px-6 py-14">
       <div className="mb-8">
-        <LumiOrb />
+        <RivvaOrb />
       </div>
 
       <div className="w-full max-w-xl bg-white/5 border border-white/10 rounded-3xl p-7 shadow-xl">

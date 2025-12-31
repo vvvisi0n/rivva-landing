@@ -1,0 +1,49 @@
+"use client";
+
+import { useRef, useEffect, useMemo } from "react";
+import type { Match } from "@/lib/matches";
+import useLumiVoice from "@/components/useLumiVoice";
+import { getLumiEnabled, getLumiAutoSpeak } from "@/lib/lumiSettings";
+
+export default function CoachNudge({ match }: { match: Match }) {
+  const lumi = useLumiVoice();
+  const lastSpokenRef = useRef<string>("");
+
+  /* LUMI_AUTO_SPEAK_COACH_NUDGE */
+  useEffect(() => {
+    if (!lumi.supported) return;
+    if (!getLumiEnabled()) return;
+    if (!getLumiAutoSpeak()) return;
+
+    // Try to speak the main nudge text if it exists in the rendered output.
+    // We grab it from a data attribute if you have one, otherwise we fall back to the first paragraph.
+    const el =
+      document.querySelector("[data-coach-nudge]") ||
+      document.querySelector(".COACH_NUDGE_TEXT");
+
+    const text = (el?.textContent || "").trim();
+    if (!text) return;
+
+    if (lastSpokenRef.current === text) return;
+    lastSpokenRef.current = text;
+
+    lumi.speak(text);
+  }, [lumi]);
+  const nudge = useMemo(() => {
+    const lines = [
+      `You and ${match.name} both feel ${match.vibe}-leaning. Don’t rush — lead with a real question.`,
+      `Notice how their bio feels calm + clear. If that’s your vibe, open soft and intentional.`,
+      `This match looks low-chaos. If you want steady, ask about what “consistency” means to them.`,
+      `Energy feels warm here. Start with curiosity, not performance.`,
+      `This could be a slow-burn win. Let it breathe.`,
+    ];
+    return lines[Math.floor(Math.random() * lines.length)];
+  }, [match]);
+
+  return (
+    <div className="rounded-2xl bg-black/40 border border-white/10 p-4 text-left">
+      <p className="text-xs text-white/60 mb-1">Lumi coach nudge</p>
+      <p className="text-sm text-white/80 leading-relaxed">{nudge}</p>
+    </div>
+  );
+}

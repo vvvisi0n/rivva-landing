@@ -1,9 +1,19 @@
 export type UserProfile = {
+  distanceMiles?: number;
+  city?: string;
+  foundingMember?: boolean;
   name: string;
-  city: string;
+
   lookingFor: "serious" | "open" | "casual";
   pace: "slow" | "balanced" | "fast";
+
   quizTier?: "spark" | "anchor" | "empath" | "magnetic";
+
+  aboutMeTags?: string[];
+  lookingForTags?: string[];
+
+  aboutMeText?: string;
+  lookingForText?: string;
 };
 
 const PROFILE_KEY = "rivva_profile";
@@ -21,12 +31,23 @@ export function loadProfile(): UserProfile | null {
 
 export function saveQuizTier(tier: UserProfile["quizTier"]) {
   if (typeof window === "undefined") return;
+
+  const existing =
+    loadProfile() ?? {
+      name: "",
+      lookingFor: "open",
+      pace: "balanced",
+    };
+
+  saveProfile({ ...existing, quizTier: tier });
+}
+
+export function setFoundingMember(on: boolean = true) {
+  if (typeof window === "undefined") return;
   const existing = loadProfile() ?? {
     name: "",
-    city: "",
     lookingFor: "open",
     pace: "balanced",
   };
-
-  saveProfile({ ...existing, quizTier: tier });
+  saveProfile({ ...existing, foundingMember: on });
 }

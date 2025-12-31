@@ -1,0 +1,212 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+
+import OnboardingGate from "@/components/OnboardingGate";
+import LumiOrb from "@/components/LumiOrb";
+
+import {
+  loadPrivacySettings,
+  patchPrivacySettings,
+  type PrivacySettings,
+} from "@/lib/privacySettings";
+
+function Card({
+  title,
+  desc,
+  children,
+}: {
+  title: string;
+  desc?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold">{title}</p>
+          {desc && <p className="text-xs text-white/60 mt-1">{desc}</p>}
+        </div>
+      </div>
+      <div className="mt-4">{children}</div>
+    </div>
+  );
+}
+
+function ToggleRow({
+  label,
+  desc,
+  value,
+  onChange,
+}: {
+  label: string;
+  desc?: string;
+  value: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <p className="text-sm font-semibold">{label}</p>
+        {desc && <p className="text-xs text-white/60 mt-1">{desc}</p>}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onChange(!value)}
+        className={
+          "px-4 py-2 rounded-2xl text-xs font-semibold transition border " +
+          (value
+            ? "bg-white text-black border-white"
+            : "bg-white/10 text-white border-white/10 hover:bg-white/15")
+        }
+      >
+        {value ? "On" : "Off"}
+      </button>
+    </div>
+  );
+}
+
+export default function PrivacySettingsPage() {
+  const [p, setP] = useState<PrivacySettings>(() => loadPrivacySettings());
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setP(loadPrivacySettings());
+    const onStorage = () => setP(loadPrivacySettings());
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  function patch(next: Partial<PrivacySettings>) {
+    const updated = patchPrivacySettings(next);
+    setP(updated);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 800);
+  }
+
+  function updateKeywords(raw: string) {
+    const list = raw
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean)
+      .slice(0, 30);
+    patch({ filteredKeywords: list });
+  }
+
+  return (
+    <OnboardingGate>
+      <main className="min-h-screen bg-[#0b0b14] text-white px-6 py-12">
+        <section className="max-w-3xl mx-auto">
+          <header className="flex items-center justify-between mb-8">
+            <Link href="/settings" className="text-sm text-white/70 hover:text-white">
+              ← Back to settings
+            </Link>
+            <div className="scale-75">
+              <LumiOrb />
+            </div>
+          </header>
+
+          <h1 className="text-3xl font-bold mb-2">Privacy</h1>
+          <p className="text-white/60 text-sm mb-8">
+            Control your visibility, reduce stimulation, and add safety guardrails.
+          </p>
+
+          <div className="space-y-4">
+            <Card
+              title="Visibility controls"
+              desc="These are MVP toggles (we’ll wire them into presence + receipts when we add real backend)."
+            >
+              <div className="space-y-4">
+                <ToggleRow
+                  label="Hide online status"
+                  desc="Other people won’t see when you’re active."
+                  value={p.hideOnlineStatus}
+                  onChange={(v) => patch({ hideOnlineStatus: v })}
+                />
+                <ToggleRow
+                  label="Hide read receipts"
+                  desc="Keep your read receipts private."
+                  value={p.hideReadReceipts}
+                  onChange={(v) => patch({ hideReadReceipts: v })}
+                />
+              </div>
+            </Card>
+
+            <Card
+              title="Low-Stimulation Mode"
+              desc="Reduces motion/animation globally. Great for neurodivergent-friendly UX."
+            >
+              <ToggleRow
+                label="Enable Low-Stimulation Mode"
+                desc="Turns off animations/transitions across the app (MVP)."
+                value={p.lowStimulationMode}
+                onChange={(v) => patch({ lowStimulationMode: v })}
+              />
+              <p className="text-[11px] text-white/50 mt-3">
+                This applies instantly. We’re using a global html data-attribute + CSS.
+              </p>
+            </Card>
+
+            <Card
+              title="Safety guardrails"
+              desc="These power Lumi’s ‘safe send’ checks and other guardrails."
+            >
+              <div className="space-y-4">
+                <ToggleRow
+                  label="Message keyword filtering"
+                  desc="Warns/blocks messages that look like scams, off-platform pressure, or disallowed language."
+                  value={p.messageKeywordFilter}
+                  onChange={(v) => patch({ messageKeywordFilter: v })}
+                />
+
+                <label className="block text-sm text-white/80">
+                  Filtered keywords (comma-separated)
+                  <input
+                    value={(p.filteredKeywords ?? []).join(", ")}
+                    onChange={(e) => updateKeywords(e.target.value)}
+                    placeholder="nudes, telegram, paypal, cashapp"
+                    className="mt-2 w-full rounded-2xl bg-black/30 border border-white/10 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-violet-400/60 placeholder:text-white/40"
+                  />
+                </label>
+
+                <ToggleRow
+                  label="Boundary reminders"
+                  desc="Soft reminders when chats move too fast or cross lines (MVP toggle for later)."
+                  value={p.boundaryReminders}
+                  onChange={(v) => patch({ boundaryReminders: v })}
+                />
+
+                <ToggleRow
+                  label="Screenshot protection"
+                  desc="MVP: warnings + deterrence (true prevention is platform-limited)."
+                  value={p.screenshotProtection}
+                  onChange={(v) => patch({ screenshotProtection: v })}
+                />
+
+                <ToggleRow
+                  label="Travel mode"
+                  desc="Hide your exact location and reduce discovery precision (MVP toggle)."
+                  value={p.travelMode}
+                  onChange={(v) => patch({ travelMode: v })}
+                />
+              </div>
+
+              <div className="mt-4 flex items-center gap-3">
+                {saved && <p className="text-sm text-emerald-200">Saved ✓</p>}
+                <Link href="/settings/privacy/about" className="text-sm text-white/60 hover:text-white hover:underline">
+                  About privacy → 
+                </Link>
+              </div>
+            </Card>
+
+            <p className="text-xs text-white/50">
+              Note: Settings are local-only for now (MVP). We’ll move these into a real DB + enforcement layer later.
+            </p>
+          </div>
+        </section>
+      </main>
+    </OnboardingGate>
+  );
+}

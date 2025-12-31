@@ -1,0 +1,211 @@
+"use client";
+
+import Link from "next/link";
+import FoundingOrb from "@/components/FoundingOrb";
+
+export default function HomePage() {
+  return (
+    <main className="min-h-screen bg-[#0b0b14] text-white">
+      <section className="max-w-5xl mx-auto px-6 py-28">
+        {/* Hero */}
+
+        {/* Hero */}
+        <div className="grid gap-14 md:grid-cols-2 md:items-center">
+          <div className="max-w-2xl">
+            <h1 className="text-5xl sm:text-6xl font-bold leading-tight">
+              Rivva
+            </h1>
+
+            <p className="mt-6 text-xl text-white/80">
+              Dating, with intention.
+            </p>
+
+            <p className="mt-6 text-white/60 leading-relaxed">
+              Rivva applies intelligence quietly.
+              <br />
+              So connection feels clearer, calmer, and more human.
+            </p>
+
+            <div className="mt-10">
+              <Link
+                href="/invite"
+                className="inline-flex items-center rounded-2xl bg-white px-6 py-3 text-black font-semibold hover:bg-white/90 transition"
+              >
+                Request an invitation
+              </Link>
+
+              <p className="mt-3 text-xs text-white/50">
+                Small waves. Thoughtful people.
+              </p>
+            </div>
+          </div>
+
+          <div className="md:justify-self-end">
+            <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl">
+              <div className="flex items-center gap-4">
+                <FoundingOrb />
+                <div>
+                  <p className="text-sm font-semibold">Lumi</p>
+                  <p className="text-xs text-white/60 mt-1">
+                    Calm guidance. Better conversations. Zero noise.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 space-y-2 text-sm text-white/70">
+                <p>• Alignment before momentum</p>
+                <p>• Boundaries built in</p>
+                <p>• Quiet by default</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        {/* Why */}
+        <div className="mt-32 grid gap-16">
+          <section className="max-w-3xl">
+            <h2 className="text-2xl font-semibold">
+              Why Rivva exists
+            </h2>
+
+            <p className="mt-4 text-white/70 leading-relaxed">
+              Modern dating is loud.
+              <br />
+              Endless signals. Endless nudges. Endless noise.
+            </p>
+
+            <p className="mt-4 text-white/70 leading-relaxed">
+              Rivva was built for people who want something different.
+            </p>
+
+            <p className="mt-4 text-white/70 leading-relaxed">
+              Not more matches.
+              <br />
+              Not faster replies.
+              <br />
+              But better understanding.
+            </p>
+          </section>
+
+          {/* What Rivva won’t do */}
+          <section className="max-w-3xl">
+            <h2 className="text-2xl font-semibold">
+              What Rivva won’t do
+            </h2>
+
+            <ul className="mt-4 space-y-2 text-white/70">
+              <li>• Rush you into decisions</li>
+              <li>• Gamify attraction</li>
+              <li>• Push attention-seeking notifications</li>
+              <li>• Treat presence as a metric</li>
+              <li>• Reward volume over meaning</li>
+            </ul>
+
+            <p className="mt-6 text-white/70">
+              Connection deserves care.
+              <br />
+              So we designed Rivva around restraint.
+            </p>
+          </section>
+
+          {/* What Rivva does */}
+          <section className="max-w-3xl">
+            <h2 className="text-2xl font-semibold">
+              What Rivva does differently
+            </h2>
+
+            <ul className="mt-4 space-y-2 text-white/70">
+              <li>• Understand alignment before conversation</li>
+              <li>• Communicate with clarity and boundaries</li>
+              <li>• Move at a pace that feels grounded</li>
+              <li>• Stay present without pressure</li>
+            </ul>
+
+            <p className="mt-6 text-white/70">
+              Everything is intentional.
+              <br />
+              Nothing is performative.
+            </p>
+          </section>
+
+          {/* Privacy */}
+          <section className="max-w-3xl">
+            <h2 className="text-2xl font-semibold">
+              Privacy is not a feature. It’s a standard.
+            </h2>
+
+            <p className="mt-4 text-white/70 leading-relaxed">
+              Rivva is built with privacy at its core.
+            </p>
+
+            <ul className="mt-4 space-y-2 text-white/70">
+              <li>• When you’re visible</li>
+              <li>• When you’re reachable</li>
+              <li>• When the app stays quiet</li>
+            </ul>
+
+            <p className="mt-6 text-white/70">
+              No unnecessary alerts.
+              <br />
+              No manufactured urgency.
+              <br />
+              No noise pretending to be value.
+            </p>
+          </section>
+
+          {/* Who it’s for */}
+          <section className="max-w-3xl">
+            <h2 className="text-2xl font-semibold">
+              Who Rivva is for
+            </h2>
+
+            <ul className="mt-4 space-y-2 text-white/70">
+              <li>• Value emotional intelligence</li>
+              <li>• Prefer calm over chaos</li>
+              <li>• Take connection seriously</li>
+              <li>• Know attention is not the same as interest</li>
+            </ul>
+
+            <p className="mt-6 text-white/70">
+              If that sounds like you, you’re welcome here.
+            </p>
+          </section>
+
+          {/* Access */}
+          <section className="max-w-3xl">
+            <h2 className="text-2xl font-semibold">
+              Access
+            </h2>
+
+            <p className="mt-4 text-white/70">
+              Rivva opens quietly.
+            </p>
+
+            <p className="mt-2 text-white/70">
+              We invite people in small waves to preserve the experience.
+            </p>
+
+            <div className="mt-6">
+              <Link
+                href="/invite"
+                className="inline-flex items-center rounded-2xl bg-white px-6 py-3 text-black font-semibold hover:bg-white/90 transition"
+              >
+                Request an invitation
+              </Link>
+            </div>
+          </section>
+        </div>
+
+        {/* Footer */}
+        <footer className="mt-40 border-t border-white/10 pt-10">
+          <p className="text-sm text-white/50">
+            Rivva is not here to perform intelligence.
+            <br />
+            It’s here to apply it. quietly.
+          </p>
+        </footer>
+      </section>
+    </main>
+  );
+}

@@ -1,0 +1,180 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+
+export type VoiceStatus = "idle" | "speaking" | "paused";
+
+export default function useLumiVoice() {
+  const [status, setStatus] = useState<VoiceStatus>("idle");
+  const [enabled, setEnabled] = useState(true);
+
+  // Web Speech fallback (still useful if API key missing)
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    audioRef.current = new Audio();
+    return () => {
+      audioRef.current?.pause();
+      audioRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+
+    function load() {
+      setVoices(window.speechSynthesis.getVoices());
+    }
+
+    load();
+    window.speechSynthesis.onvoiceschanged = load;
+
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, []);
+
+  const bestVoice = useMemo(() => {
+    if (!voices.length) return null;
+    const preferred = ["Samantha", "Ava", "Victoria", "Allison", "Google US English"];
+    const avoid = /robot|zira|fred|male|compact/i;
+
+    const candidates = voices
+      .filter((v) => v.lang?.startsWith("en"))
+      .filter((v) => !avoid.test(v.name))
+      .sort((a, b) => Number(b.localService) - Number(a.localService));
+
+    for (const name of preferred) {
+      const found = candidates.find((v) => v.name === name);
+      if (found) return found;
+    }
+    return candidates[0] || voices[0];
+  }, [voices]);
+
+  function stop() {
+    if (typeof window === "undefined") return;
+
+    // Stop OpenAI audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+
+    // Stop Web Speech
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+
+    setStatus("idle");
+  }
+
+  async function speak(text: string) {
+    if (!enabled) return;
+    if (typeof window === "undefined") return;
+    if (!text?.trim()) return;
+
+    stop();
+    setStatus("speaking");
+
+    // 1) Try OpenAI TTS first
+    try {
+      const r = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text,
+          voice: "alloy",
+          format: "mp3",
+          instructions:
+            "Warm, calm, emotionally intelligent dating coach. Natural pacing, gentle pauses. Slight smile in the voice. Not robotic.",
+        }),
+      });
+
+      if (!r.ok) throw new Error(await r.text());
+
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+
+      const a = audioRef.current;
+      if (!a) throw new Error("No audio element");
+
+      a.src = url;
+      a.onended = () => {
+        URL.revokeObjectURL(url);
+        setStatus("idle");
+      };
+      a.onerror = () => {
+        URL.revokeObjectURL(url);
+        setStatus("idle");
+      };
+
+      await a.play();
+      return;
+    } catch {
+      console.warn("OpenAI TTS failed, falling back.");
+      
+    }
+
+    // 2) Web Speech fallback
+    if (!("speechSynthesis" in window)) {
+      setStatus("idle");
+      return;
+    }
+
+    const u = new SpeechSynthesisUtterance(text);
+    if (bestVoice) u.voice = bestVoice;
+    u.rate = 0.92;
+    u.pitch = 1.06;
+    u.volume = 1;
+
+    u.onend = () => setStatus("idle");
+    u.onerror = () => setStatus("idle");
+
+    window.speechSynthesis.speak(u);
+  }
+
+  function pause() {
+    if (typeof window === "undefined") return;
+
+    if (audioRef.current && !audioRef.current.paused) {
+      audioRef.current.pause();
+      setStatus("paused");
+      return;
+    }
+
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.pause();
+      setStatus("paused");
+    }
+  }
+
+  function resume() {
+    if (typeof window === "undefined") return;
+
+    if (audioRef.current && audioRef.current.paused && audioRef.current.currentTime > 0) {
+      audioRef.current.play();
+      setStatus("speaking");
+      return;
+    }
+
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.resume();
+      setStatus("speaking");
+    }
+  }
+
+  return {
+    supported: true,
+    status,
+    isSpeaking: status === "speaking",
+    enabled,
+    setEnabled,
+    speak,
+    stop,
+    pause,
+    resume,
+    voiceName: "openai/alloy",
+  };
+}

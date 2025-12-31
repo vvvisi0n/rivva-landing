@@ -1,0 +1,226 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import useLumiVoice from "@/components/useLumiVoice";
+import { matches as allMatches, type Match } from "@/lib/matches";
+import { getReasonFor } from "@/lib/lumiReasons";
+
+const LOCAL_STORAGE_KEY = "rivva-liked-ids";
+
+export default function LikedPage() {
+  const [likedIds, setLikedIds] = useState<string[] | null>(null);
+  const [likedMatches, setLikedMatches] = useState<Match[]>([]);
+  const { speak, stop, isSpeaking } = useLumiVoice();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (!raw) {
+        setLikedIds([]);
+        setLikedMatches([]);
+        return;
+      }
+
+      const parsed = JSON.parse(raw) as string[];
+      const ids = Array.isArray(parsed) ? parsed : [];
+      setLikedIds(ids);
+
+      const filtered = allMatches.filter((m) => ids.includes(m.id));
+      setLikedMatches(filtered);
+    } catch {
+      setLikedIds([]);
+      setLikedMatches([]);
+    }
+  }, []);
+
+  const isLoading = likedIds === null;
+
+  function handleHearLumi() {
+    if (isSpeaking) {
+      stop();
+      return;
+    }
+
+    const first = likedMatches[0];
+    if (!first) {
+      speak("No likes yet. Head to Discover, and I’ll help you choose with emotional clarity.");
+      return;
+    }
+
+    const r = getReasonFor(first.id);
+    speak(
+      r
+        ? r
+        : `Here’s why I think ${first.name} fits you: your patterns lean toward calm connection, not quick chemistry.`
+    );
+  }
+
+  return (
+    <div className="min-h-screen text-slate-50">
+      <div className="mx-auto flex max-w-2xl flex-col px-4 pb-10 pt-8">
+        <header className="mb-6 flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+              Liked
+            </p>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              People Lumi thinks you&apos;re drawn to.
+            </h1>
+
+          {/* LIKED_AUTOSPEAK_CTA */}
+          <div className="rounded-3xl bg-white/5 border border-white/10 p-5 shadow-xl mb-6">
+            <p className="text-sm font-semibold">Want Lumi to talk you through matches?</p>
+            <p className="text-xs text-white/60 mt-1">
+              Turn on Auto-speak in Settings → Accessibility. (Opt-in only.)
+            </p>
+            <div className="mt-4">
+              <Link
+                href="/settings/accessibility"
+                className="px-4 py-2.5 rounded-2xl bg-white text-black text-sm font-semibold hover:bg-white/90 transition inline-block"
+              >
+                Open Accessibility Settings
+              </Link>
+            </div>
+          </div>
+
+            <p className="text-sm text-slate-300">
+              This is your softer shortlist. As you like in Discover, Lumi saves
+              a quick “why” so the match feels human.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link
+              href="/discover"
+              className="rounded-full border border-slate-600/60 px-3 py-1 text-xs font-medium text-slate-100 hover:bg-slate-800/40"
+            >
+              Back to Discover
+            </Link>
+
+            <button
+              type="button"
+              onClick={handleHearLumi}
+              className="rounded-full bg-violet-500/20 px-3 py-1 text-xs font-semibold text-violet-200 ring-1 ring-violet-400/30 hover:bg-violet-500/30"
+            >
+              {isSpeaking ? "Stop Lumi" : "Hear Lumi"}
+            </button>
+          </div>
+        </header>
+
+        {isLoading ? (
+          <div className="mt-10 text-center text-sm text-slate-300">
+            Loading Lumi&apos;s notes on your likes…
+          </div>
+        ) : likedMatches.length === 0 ? (
+          <div className="mt-10 rounded-2xl border border-slate-700/60 bg-slate-900/40 p-6 text-center text-sm text-slate-200">
+            <p>You haven&apos;t liked anyone yet.</p>
+            <p className="mt-2 text-xs text-slate-400">
+              Head back to Discover and like the people who feel like emotional
+              matches, not just good photos.
+            </p>
+            <div className="mt-4 flex justify-center">
+              <Link
+                href="/discover"
+                className="rounded-full bg-emerald-400 px-4 py-2 text-xs font-semibold text-emerald-950 hover:bg-emerald-300"
+              >
+                Go to Discover
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {likedMatches.map((match) => {
+              const reason = getReasonFor(match.id);
+
+              return (
+                <li
+                  key={match.id}
+                  className="flex items-center gap-3 rounded-2xl border border-slate-700/60 bg-slate-900/40 p-3"
+                >
+                  <div className="h-12 w-12 overflow-hidden rounded-full border border-slate-600/60 bg-slate-900/40">
+                    {match.images?.[0] ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={match.images[0]}
+                        alt={match.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-[11px] text-slate-400">
+                        Lumi
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-1 flex-col">
+                    <div className="flex items-baseline gap-2">
+                      <Link
+                        href={`/matches/${match.id}`}
+                        className="text-sm font-semibold text-slate-50 hover:underline"
+                      >
+                        {match.name}
+                      </Link>
+                      {match.age && (
+                        <span className="text-xs text-slate-200">
+                          {match.age}
+                        </span>
+                      )}
+                      {typeof match.compatibility === "number" && (
+                        <span className="ml-auto rounded-full bg-emerald-400/10 px-2.5 py-0.5 text-[11px] text-emerald-200">
+                          {match.compatibility}% Lumi match
+                        </span>
+                      )}
+                    </div>
+
+                    {match.bio && (
+                      <p className="mt-0.5 line-clamp-2 text-xs text-slate-200">
+                        {match.bio}
+                      </p>
+                    )}
+
+                    {reason && (
+                      <div className="mt-2 rounded-xl border border-violet-400/25 bg-violet-500/10 p-2 text-[11px] text-violet-200">
+                        <span className="font-semibold">Lumi:</span> {reason}
+                      </div>
+                    )}
+
+                    {match.vibeTags && match.vibeTags.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {match.vibeTags.slice(0, 3).map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded-full bg-slate-800/60 px-2 py-0.5 text-[10px] text-slate-100"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="ml-2 flex flex-col items-end gap-1">
+                    <Link
+                      href={`/chat/${match.id}`}
+                      className="rounded-full bg-emerald-400 px-3 py-1 text-[11px] font-semibold text-emerald-950 hover:bg-emerald-300"
+                    >
+                      Say hi
+                    </Link>
+                    <Link
+                      href={`/matches/${match.id}`}
+                      className="text-[10px] text-slate-300 hover:text-slate-100"
+                    >
+                      View profile
+                    </Link>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}

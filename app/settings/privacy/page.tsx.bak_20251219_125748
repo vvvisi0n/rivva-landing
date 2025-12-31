@@ -1,0 +1,261 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+
+import OnboardingGate from "@/components/OnboardingGate";
+import LumiOrb from "@/components/LumiOrb";
+
+import {
+  loadPrivacySettings,
+  patchPrivacySettings,
+  DEFAULT_PRIVACY,
+  type PrivacySettings,
+} from "@/lib/privacySettings";
+
+function SectionCard({
+  title,
+  desc,
+  children,
+}: {
+  title: string;
+  desc?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl">
+      <p className="text-sm font-semibold">{title}</p>
+      {desc && <p className="text-xs text-white/60 mt-1">{desc}</p>}
+      <div className="mt-4">{children}</div>
+    </div>
+  );
+}
+
+function ToggleRow({
+  label,
+  desc,
+  value,
+  onChange,
+}: {
+  label: string;
+  desc?: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 rounded-2xl bg-black/30 border border-white/10 p-4">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold">{label}</p>
+        {desc && <p className="text-xs text-white/60 mt-1">{desc}</p>}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onChange(!value)}
+        className={
+          "shrink-0 px-4 py-2 rounded-xl text-xs font-semibold border transition " +
+          (value
+            ? "bg-white text-black border-white hover:bg-white/90"
+            : "bg-white/10 text-white border-white/10 hover:bg-white/15")
+        }
+        aria-pressed={value}
+      >
+        {value ? "On" : "Off"}
+      </button>
+    </div>
+  );
+}
+
+export default function PrivacySettingsPage() {
+  const [p, setP] = useState<PrivacySettings>(DEFAULT_PRIVACY);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    const cur = loadPrivacySettings();
+    setP(cur);
+
+    const sync = () => setP(loadPrivacySettings());
+    window.addEventListener("storage", sync);
+    window.addEventListener("focus", sync);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("focus", sync);
+    };
+  }, []);
+
+  function patch(next: Partial<PrivacySettings>) {
+    const merged = patchPrivacySettings(next);
+    setP(merged);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 700);
+  }
+
+  const keywordsText = useMemo(() => (p.filteredKeywords ?? []).join(", "), [p.filteredKeywords]);
+
+  function setKeywordsFromText(raw: string) {
+    const arr = raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(0, 50);
+    patch({ filteredKeywords: arr });
+  }
+
+  function reset() {
+    patchPrivacySettings(DEFAULT_PRIVACY);
+    setP(DEFAULT_PRIVACY);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 900);
+  }
+
+  return (
+    <OnboardingGate>
+      <main className="min-h-screen bg-[#0b0b14] text-white px-6 py-12">
+        <section className="max-w-3xl mx-auto">
+          <header className="flex items-center justify-between mb-8">
+            <Link href="/settings" className="text-sm text-white/70 hover:text-white">
+              ← Back to settings
+            </Link>
+            <div className="scale-75">
+              <LumiOrb />
+            </div>
+          </header>
+
+          <h1 className="text-3xl font-bold mb-2">Privacy</h1>
+          <p className="text-white/60 text-sm mb-8">
+            Trust-first controls. Some are MVP UI now; real enforcement comes when backend + platform APIs are wired.
+          </p>
+
+          <div className="space-y-4">
+            <SectionCard title="Visibility" desc="Control what others can infer about you.">
+              <div className="space-y-3">
+                <ToggleRow
+                  label="Hide online status"
+                  desc="Presence indicator (MVP flag for now)."
+                  value={p.hideOnlineStatus}
+                  onChange={(v) => patch({ hideOnlineStatus: v })}
+                />
+
+                <ToggleRow
+                  label="Hide read receipts"
+                  desc="Seen/read state (MVP flag for now)."
+                  value={p.hideReadReceipts}
+                  onChange={(v) => patch({ hideReadReceipts: v })}
+                />
+              </div>
+            </SectionCard>
+
+            <SectionCard title="Low-Stimulation Mode" desc="Neurodivergent-friendly calm UI preset.">
+              <div className="space-y-3">
+                <ToggleRow
+                  label="Low-stimulation mode"
+                  desc="Turns off animations/transitions globally (PrivacyApplier + CSS)."
+                  value={p.lowStimulationMode}
+                  onChange={(v) => patch({ lowStimulationMode: v })}
+                />
+              </div>
+            </SectionCard>
+
+            <SectionCard title="Messaging Safety" desc="Scam resistance + boundaries.">
+              <div className="space-y-3">
+                <ToggleRow
+                  label="Message keyword filtering"
+                  desc="Warn/block common scam/off-platform pressure. Used by SafeSendBar."
+                  value={p.messageKeywordFilter}
+                  onChange={(v) => patch({ messageKeywordFilter: v })}
+                />
+
+                <ToggleRow
+                  label="Boundary reminders"
+                  desc="Gentle nudges before risky steps (contact info, money talk, etc.)."
+                  value={p.boundaryReminders}
+                  onChange={(v) => patch({ boundaryReminders: v })}
+                />
+              </div>
+
+              <div className="mt-4 rounded-2xl bg-black/30 border border-white/10 p-4">
+                <p className="text-sm font-semibold">Filtered keywords</p>
+                <p className="text-xs text-white/60 mt-1">Comma-separated.</p>
+
+                <textarea
+                  value={keywordsText}
+                  onChange={(e) => setKeywordsFromText(e.target.value)}
+                  rows={3}
+                  placeholder="nudes, cashapp, venmo, paypal, telegram..."
+                  className="mt-3 w-full rounded-2xl bg-black/30 border border-white/10 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-violet-400/60 placeholder:text-white/40 resize-none"
+                />
+              </div>
+            </SectionCard>
+
+            <SectionCard title="Quiet Hours" desc="Store your preferred quiet window (notifications gating later).">
+              <div className="space-y-3">
+                <ToggleRow
+                  label="Enable quiet hours"
+                  desc="Mute non-critical notifications during this window."
+                  value={p.quietHours.enabled}
+                  onChange={(v) => patch({ quietHours: { ...p.quietHours, enabled: v } })}
+                />
+
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <label className="text-sm text-white/80">
+                    Start
+                    <input
+                      type="time"
+                      value={p.quietHours.start}
+                      onChange={(e) => patch({ quietHours: { ...p.quietHours, start: e.target.value } })}
+                      className="mt-2 w-full rounded-2xl bg-black/30 border border-white/10 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-violet-400/60"
+                    />
+                  </label>
+
+                  <label className="text-sm text-white/80">
+                    End
+                    <input
+                      type="time"
+                      value={p.quietHours.end}
+                      onChange={(e) => patch({ quietHours: { ...p.quietHours, end: e.target.value } })}
+                      className="mt-2 w-full rounded-2xl bg-black/30 border border-white/10 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-violet-400/60"
+                    />
+                  </label>
+                </div>
+              </div>
+            </SectionCard>
+
+            <SectionCard title="Protection (MVP)" desc="Some protections are platform-limited; still strong norms.">
+              <div className="space-y-3">
+                <ToggleRow
+                  label="Screenshot protection"
+                  desc="MVP: warnings/flags. True prevention depends on platform."
+                  value={p.screenshotProtection}
+                  onChange={(v) => patch({ screenshotProtection: v })}
+                />
+
+                <ToggleRow
+                  label="Travel mode"
+                  desc="MVP: stored flag. Later: temporary location + intent matching."
+                  value={p.travelMode}
+                  onChange={(v) => patch({ travelMode: v })}
+                />
+              </div>
+            </SectionCard>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={reset}
+                className="px-5 py-3 rounded-2xl bg-white/10 border border-white/10 font-semibold hover:bg-white/15 transition"
+              >
+                Reset to defaults
+              </button>
+
+              {saved && <p className="text-sm text-emerald-200">Saved ✓</p>}
+            </div>
+
+            <p className="text-xs text-white/50">
+              Stored locally for now (MVP). Next step: enforce via backend rules + moderation.
+            </p>
+          </div>
+        </section>
+      </main>
+    </OnboardingGate>
+  );
+}

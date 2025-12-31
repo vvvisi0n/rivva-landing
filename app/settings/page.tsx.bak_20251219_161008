@@ -1,0 +1,100 @@
+"use client";
+
+import Link from "next/link";
+import OnboardingGate from "@/components/OnboardingGate";
+import RivvaOrb from "@/components/RivvaOrb";
+
+function Card({
+  title,
+  desc,
+  href,
+}: {
+  title: string;
+  desc: string;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="block rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl hover:bg-white/10 transition"
+    >
+      <p className="text-sm font-semibold">{title}</p>
+      <p className="text-xs text-white/60 mt-1">{desc}</p>
+      <p className="text-xs text-white/50 mt-4">Open →</p>
+    </Link>
+  );
+}
+
+export default function SettingsHomePage() {
+  return (
+    <OnboardingGate>
+      <main className="min-h-screen bg-[#0b0b14] text-white px-6 py-12">
+        <section className="max-w-3xl mx-auto">
+          <header className="flex items-center justify-between mb-8">
+            <Link href="/" className="text-sm text-white/70 hover:text-white">
+              ← Back
+            </Link>
+            <div className="scale-75">
+              <RivvaOrb />
+            </div>
+          </header>
+
+          <h1 className="text-3xl font-bold mb-2">Settings</h1>
+          <p className="text-white/60 text-sm mb-8">
+            Tune Rivva to feel safer, calmer, and more you.
+          </p>
+
+          <div className="grid gap-4">
+            <Card
+              title="Profile"
+              desc="About me + what I’m looking for (tags + your own words)."
+              href="/settings/profile"
+            />
+
+            <Card
+              title="Accessibility"
+              desc="Lumi voice, auto-speak, and accessibility controls."
+              href="/settings/accessibility"
+            />
+
+            <Card
+              title="Privacy"
+              desc="Orb toggle, low-stimulation mode, message filters, quiet hours, visibility."
+              href="/settings/privacy"
+            />
+
+            <Card
+              title="Privacy & Safety"
+              desc="Blocking, reporting, verification, and safety controls."
+              href="/settings/privacy-safety"
+            />
+
+            <Card
+              title="Notifications"
+              desc="Notification preferences (MVP)."
+              href="/settings/notifications"
+            />
+
+            <Card
+              title="Discovery"
+              desc="Discovery and matching preferences (MVP)."
+              href="/settings/discovery"
+            />
+
+            <Card
+              title="Account"
+              desc="Account controls (MVP)."
+              href="/settings/account"
+            />
+
+            <Card
+              title="Support & Legal"
+              desc="Help, policies, and terms."
+              href="/settings/support-legal"
+            />
+          </div>
+        </section>
+      </main>
+    </OnboardingGate>
+  );
+}

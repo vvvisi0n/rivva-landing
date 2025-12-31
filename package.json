@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "NEXT_DISABLE_TURBOPACK=1 next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
@@ -12,6 +12,7 @@
     "firebase": "^12.6.0",
     "framer-motion": "^12.23.24",
     "next": "^16.0.7",
+    "open": "^11.0.0",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "recharts": "^3.4.1"

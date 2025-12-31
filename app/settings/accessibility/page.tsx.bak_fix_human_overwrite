@@ -1,0 +1,419 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import OnboardingGate from "@/components/OnboardingGate";
+import LumiOrb from "@/components/LumiOrb";
+import useLumiVoice from "@/components/useLumiVoice";
+import {
+  getLumiEnabled,
+  setLumiEnabled,
+  getLumiAutoSpeak,
+  setLumiAutoSpeak,
+  getLumiCoachAutoSpeak,
+  setLumiCoachAutoSpeak,
+  getLumiQuizAutoSpeak,
+  setLumiQuizAutoSpeak,
+  getLumiVoiceStyle,
+  setLumiVoiceStyle,
+  getLumiBreathMode,
+  setLumiBreathMode,
+  getLumiVoiceTuning,
+  setLumiVoiceTuning,
+  resetLumiSettings,
+} from "@/lib/lumiSettings";
+
+type Style = "calm" | "playful" | "intimate";
+
+type Tuning = {
+  rateMul: number;
+  pitchMul: number;
+  pauseMul: number;
+};
+
+function ToggleRow({
+  title,
+  desc,
+  value,
+  onToggle,
+}: {
+  title: string;
+  desc: string;
+  value: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold">{title}</p>
+          <p className="text-xs text-white/60 mt-1">{desc}</p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onToggle}
+          className={
+            "rounded-full px-3 py-1 text-xs font-semibold ring-1 transition " +
+            (value
+              ? "bg-violet-500/20 text-violet-200 ring-violet-400/30 hover:bg-violet-500/30"
+              : "bg-white/5 text-white/70 ring-white/15 hover:bg-white/10")
+          }
+        >
+          {value ? "On" : "Off"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function AccessibilitySettingsPage() {
+  const lumi = useLumiVoice();
+
+  const [lumiEnabled, setLumiEnabledState] = useState(true);
+  const [autoSpeak, setAutoSpeakState] = useState(false);
+  const [coachAuto, setCoachAutoState] = useState(true);
+  const [quizAuto, setQuizAutoState] = useState(true);
+
+  const [voiceStyle, setVoiceStyleState] = useState<Style>("calm");
+  const [breathMode, setBreathModeState] = useState(true);
+
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [tuning, setTuning] = useState<Tuning>({ rateMul: 1, pitchMul: 1, pauseMul: 1 });
+
+  useEffect(() => {
+    function sync() {
+      setLumiEnabledState(getLumiEnabled());
+      setAutoSpeakState(getLumiAutoSpeak());
+      setCoachAutoState(getLumiCoachAutoSpeak());
+      setQuizAutoState(getLumiQuizAutoSpeak());
+
+      setVoiceStyleState(getLumiVoiceStyle() as Style);
+      setBreathModeState(getLumiBreathMode());
+
+      setTuning(getLumiVoiceTuning() as Tuning);
+    }
+
+    sync();
+    window.addEventListener("storage", sync);
+    return () => window.removeEventListener("storage", sync);
+  }, []);
+
+  function setStyle(next: Style) {
+    setVoiceStyleState(next);
+    setLumiVoiceStyle(next);
+    try {
+      window.dispatchEvent(new Event("storage"));
+    } catch {}
+  }
+
+  function setBreath(next: boolean) {
+    setBreathModeState(next);
+    setLumiBreathMode(next);
+    try {
+      window.dispatchEvent(new Event("storage"));
+    } catch {}
+  }
+
+  function updateTuning(next: Tuning) {
+    setTuning(next);
+    setLumiVoiceTuning(next);
+  }
+
+  function applyHumanMode() {
+    // Recommended preset: calmer pacing + warmer pitch + more pauses
+    setStyle("calm");
+    setBreath(true);
+
+    const preset = { rateMul: 0.92, pitchMul: 1.06, pauseMul: 1.15 };
+    updateTuning(preset);
+
+    // Ensure voice is enabled, but keep auto-speak opt-in
+    setLumiEnabled(true);
+    setLumiEnabledState(true);
+
+    try {
+      window.dispatchEvent(new Event("storage"));
+    } catch {}
+  }
+
+  function testVoice() {
+    if (!lumi.supported) return;
+
+    if (!lumiEnabled) {
+      setLumiEnabled(true);
+      setLumiEnabledState(true);
+    }
+
+    lumi.speak(
+      "Hey. It’s Lumi. I’ll keep this calm, warm, and human. If you want, you can turn on auto-speak so I narrate key moments for you."
+    );
+  }
+
+  return (
+    <OnboardingGate>
+      <main className="min-h-screen bg-[#0b0b14] text-white px-6 py-12">
+        <section className="max-w-3xl mx-auto">
+          <header className="flex items-center justify-between mb-8">
+            <Link href="/settings" className="text-sm text-white/70 hover:text-white">
+              ← Back to Settings
+            </Link>
+            <div className="scale-75">
+              <LumiOrb />
+            </div>
+          </header>
+
+          <h1 className="text-3xl font-bold mb-2">Accessibility</h1>
+          <p className="text-white/60 text-sm mb-8">
+            Lumi voice is opt-in. Nothing speaks unless you enable it.
+          </p>
+
+          <div className="grid gap-4">
+            {/* Voice style */}
+            <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl">
+              <p className="text-sm font-semibold">Lumi voice style</p>
+              <p className="text-xs text-white/60 mt-1">
+                Changes pacing + warmth. Pick what feels most human to you.
+              </p>
+
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStyle("calm")}
+                  className={
+                    "px-3 py-3 rounded-2xl text-sm font-semibold border transition " +
+                    (voiceStyle === "calm"
+                      ? "bg-violet-500/20 text-violet-200 border-violet-400/30"
+                      : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10")
+                  }
+                >
+                  Calm
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStyle("playful")}
+                  className={
+                    "px-3 py-3 rounded-2xl text-sm font-semibold border transition " +
+                    (voiceStyle === "playful"
+                      ? "bg-violet-500/20 text-violet-200 border-violet-400/30"
+                      : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10")
+                  }
+                >
+                  Playful
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStyle("intimate")}
+                  className={
+                    "px-3 py-3 rounded-2xl text-sm font-semibold border transition " +
+                    (voiceStyle === "intimate"
+                      ? "bg-violet-500/20 text-violet-200 border-violet-400/30"
+                      : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10")
+                  }
+                >
+                  Intimate
+                </button>
+              
+
+              <div className="mt-4 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={applyHumanMode}
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-500/30 to-cyan-400/20 border border-violet-300/20 text-sm font-semibold hover:bg-white/10 transition"
+                >
+                  Human Mode • Recommended
+                </button>
+
+                <span className="text-xs text-white/50 self-center">
+                  Calm + Breath + tuned pauses
+                </span>
+              </div>
+
+
+            <ToggleRow
+              title="Lumi voice"
+              desc="Master switch for speaking. If Off, voice never plays."
+              value={lumiEnabled}
+              onToggle={() => {
+                const next = !lumiEnabled;
+                setLumiEnabledState(next);
+                setLumiEnabled(next);
+                try {
+                  window.dispatchEvent(new Event("storage"));
+                } catch {}
+              }}
+            />
+
+            <ToggleRow
+              title="Auto-speak"
+              desc="Lets Lumi speak automatically after key moments (opt-in)."
+              value={autoSpeak}
+              onToggle={() => {
+                const next = !autoSpeak;
+                setAutoSpeakState(next);
+                setLumiAutoSpeak(next);
+                try {
+                  window.dispatchEvent(new Event("storage"));
+                } catch {}
+              }}
+            />
+
+            <ToggleRow
+              title="Breath Mode"
+              desc="Adds small natural pauses so Lumi sounds more human."
+              value={breathMode}
+              onToggle={() => setBreath(!breathMode)}
+            />
+
+            <ToggleRow
+              title="Auto-speak: Coach nudges"
+              desc="If Auto-speak is On, Lumi can read coaching nudges."
+              value={coachAuto}
+              onToggle={() => {
+                const next = !coachAuto;
+                setCoachAutoState(next);
+                setLumiCoachAutoSpeak(next);
+                try {
+                  window.dispatchEvent(new Event("storage"));
+                } catch {}
+              }}
+            />
+
+            <ToggleRow
+              title="Auto-speak: Quiz results"
+              desc="If Auto-speak is On, Lumi can narrate quiz results."
+              value={quizAuto}
+              onToggle={() => {
+                const next = !quizAuto;
+                setQuizAutoState(next);
+                setLumiQuizAutoSpeak(next);
+                try {
+                  window.dispatchEvent(new Event("storage"));
+                } catch {}
+              }}
+            />
+
+            {/* Advanced tuning */}
+            <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold">Advanced tuning</p>
+                  <p className="text-xs text-white/60 mt-1">
+                    Optional fine control. Leave at defaults if you’re unsure.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setAdvancedOpen(!advancedOpen)}
+                  className="rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-white/15 bg-white/5 hover:bg-white/10 transition"
+                >
+                  {advancedOpen ? "Hide" : "Show"}
+                </button>
+              </div>
+
+              {advancedOpen && (
+                <div className="mt-5 space-y-5">
+                  <div>
+                    <p className="text-xs text-white/70 mb-2">Rate</p>
+                    <input
+                      type="range"
+                      min="0.80"
+                      max="1.20"
+                      step="0.01"
+                      value={tuning.rateMul}
+                      onChange={(e) =>
+                        updateTuning({ ...tuning, rateMul: Number(e.target.value) })
+                      }
+                      className="w-full"
+                    />
+                    <p className="text-xs text-white/50 mt-1">
+                      × {tuning.rateMul.toFixed(2)}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-white/70 mb-2">Warmth (Pitch)</p>
+                    <input
+                      type="range"
+                      min="0.90"
+                      max="1.20"
+                      step="0.01"
+                      value={tuning.pitchMul}
+                      onChange={(e) =>
+                        updateTuning({ ...tuning, pitchMul: Number(e.target.value) })
+                      }
+                      className="w-full"
+                    />
+                    <p className="text-xs text-white/50 mt-1">
+                      × {tuning.pitchMul.toFixed(2)}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-white/70 mb-2">Pauses</p>
+                    <input
+                      type="range"
+                      min="0.70"
+                      max="1.50"
+                      step="0.01"
+                      value={tuning.pauseMul}
+                      onChange={(e) =>
+                        updateTuning({ ...tuning, pauseMul: Number(e.target.value) })
+                      }
+                      className="w-full"
+                    />
+                    <p className="text-xs text-white/50 mt-1">
+                      × {tuning.pauseMul.toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Test + Reset */}
+            <div className="rounded-3xl bg-black/30 border border-white/10 p-6">
+              <p className="text-sm font-semibold">Test Lumi</p>
+              <p className="text-xs text-white/60 mt-1">
+                Plays a short sample with your current settings.
+              </p>
+
+              <div className="mt-4 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (lumi.status === "speaking") lumi.stop();
+                    else testVoice();
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-white text-black text-sm font-semibold hover:bg-white/90 transition"
+                >
+                  {lumi.status === "speaking" ? "Stop" : "Play test"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetLumiSettings();
+                    try {
+                      window.dispatchEvent(new Event("storage"));
+                    } catch {}
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-white/10 border border-white/10 text-sm font-semibold hover:bg-white/15 transition"
+                >
+                  Reset to defaults
+                </button>
+              </div>
+
+              <p className="text-xs text-white/50 mt-3">
+                Voice: {lumi.voiceName ?? "Default"} • Style: {voiceStyle} • Breath:{" "}
+                {breathMode ? "On" : "Off"}
+              </p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </OnboardingGate>
+  );
+}

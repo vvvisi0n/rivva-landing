@@ -1,0 +1,274 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import OnboardingGate from "@/components/OnboardingGate";
+import LumiOrb from "@/components/LumiOrb";
+import useLumiVoice from "@/components/useLumiVoice";
+import {
+  getLumiEnabled,
+  setLumiEnabled,
+  getLumiAutoSpeak,
+  setLumiAutoSpeak,
+  getLumiCoachAutoSpeak,
+  setLumiCoachAutoSpeak,
+  getLumiQuizAutoSpeak,
+  setLumiQuizAutoSpeak,
+  resetLumiSettings,
+  getLumiVoiceStyle,
+  setLumiVoiceStyle,
+} from "@/lib/lumiSettings";
+
+function Toggle({
+  title,
+  desc,
+  value,
+  onChange,
+}: {
+  title: string;
+  desc: string;
+  value: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    
+            /* VOICE_STYLE_PRESET */
+            <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl">
+              <p className="text-sm font-semibold">Lumi voice style</p>
+              <p className="text-xs text-white/60 mt-1">
+                Changes pacing + warmth. Pick what feels most human to you.
+              </p>
+
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() => updateVoiceStyle("calm")}
+                  className={
+                    "px-3 py-3 rounded-2xl text-sm font-semibold border transition " +
+                    (voiceStyle === "calm"
+                      ? "bg-violet-500/20 text-violet-200 border-violet-400/30"
+                      : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10")
+                  }
+                >
+                  Calm
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => updateVoiceStyle("playful")}
+                  className={
+                    "px-3 py-3 rounded-2xl text-sm font-semibold border transition " +
+                    (voiceStyle === "playful"
+                      ? "bg-violet-500/20 text-violet-200 border-violet-400/30"
+                      : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10")
+                  }
+                >
+                  Playful
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => updateVoiceStyle("intimate")}
+                  className={
+                    "px-3 py-3 rounded-2xl text-sm font-semibold border transition " +
+                    (voiceStyle === "intimate"
+                      ? "bg-violet-500/20 text-violet-200 border-violet-400/30"
+                      : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10")
+                  }
+                >
+                  Intimate
+                </button>
+              </div>
+            </div>
+
+
+            <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold">{title}</p>
+          <p className="text-xs text-white/60 mt-1">{desc}</p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onChange(!value)}
+          className={
+            "rounded-full px-3 py-1 text-xs font-semibold ring-1 transition " +
+            (value
+              ? "bg-violet-500/20 text-violet-200 ring-violet-400/30 hover:bg-violet-500/30"
+              : "bg-white/5 text-white/70 ring-white/15 hover:bg-white/10")
+          }
+        >
+          {value ? "On" : "Off"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function AccessibilitySettings() {
+  const { supported, speak, stop, status, voiceName } = useLumiVoice();
+
+  const [lumiEnabled, setLumiEnabledState] = useState(true);
+  const [autoSpeak, setAutoSpeakState] = useState(false);
+  const [coachAutoSpeak, setCoachAutoSpeakState] = useState(true);
+  const [quizAutoSpeak, setQuizAutoSpeakState] = useState(true);
+  const [voiceStyle, setVoiceStyleState] = useState<"calm" | "playful" | "intimate">("calm");
+
+  useEffect(() => {
+    function sync() {
+      setLumiEnabledState(getLumiEnabled());
+      setAutoSpeakState(getLumiAutoSpeak());
+      setCoachAutoSpeakState(getLumiCoachAutoSpeak());
+      setQuizAutoSpeakState(getLumiQuizAutoSpeak());
+      setVoiceStyleState(getLumiVoiceStyle());
+    }
+
+    sync();
+    window.addEventListener("storage", sync);
+    return () => window.removeEventListener("storage", sync);
+  }, []);
+
+  function updateLumiEnabled(next: boolean) {
+    setLumiEnabledState(next);
+    setLumiEnabled(next);
+    if (!next) stop();
+  }
+
+  function updateAutoSpeak(next: boolean) {
+    setAutoSpeakState(next);
+    setLumiAutoSpeak(next);
+  }
+
+  function updateVoiceStyle(next: "calm" | "playful" | "intimate") {
+    setVoiceStyleState(next);
+    setLumiVoiceStyle(next);
+  }
+
+  function updateQuizAutoSpeak(next: boolean) {
+    setQuizAutoSpeakState(next);
+    setLumiQuizAutoSpeak(next);
+  }
+
+  function updateCoachAutoSpeak(next: boolean) {
+    setCoachAutoSpeakState(next);
+    setLumiCoachAutoSpeak(next);
+  }
+
+  return (
+    <OnboardingGate>
+      <main className="min-h-screen bg-[#0b0b14] text-white px-6 py-12">
+        <section className="max-w-3xl mx-auto">
+          <header className="flex items-center justify-between mb-8">
+            <Link href="/settings" className="text-sm text-white/70 hover:text-white">
+              ← Settings
+            </Link>
+            <div className="scale-75">
+              <LumiOrb />
+            </div>
+          </header>
+
+          <h1 className="text-3xl font-bold mb-2">Accessibility</h1>
+          <p className="text-white/60 text-sm mb-8">
+            Voice features are opt-in. Nothing speaks unless the user enables it.
+          </p>
+
+          <div className="space-y-4">
+            <Toggle
+              title="Lumi voice"
+              desc="Master switch. If Off, Lumi won’t speak anywhere in the app."
+              value={lumiEnabled}
+              onChange={updateLumiEnabled}
+            />
+
+            <Toggle
+              title="Auto-speak"
+              desc="If On, Lumi speaks automatically after key moments (like “Why this match?”)."
+              value={autoSpeak}
+              onChange={updateAutoSpeak}
+            />
+
+
+            <Toggle
+              title="Auto-speak quiz results"
+              desc="If Off, Lumi will not auto-read your quiz results page."
+              value={quizAutoSpeak}
+              onChange={updateQuizAutoSpeak}
+            />
+
+            <Toggle
+              title="Auto-speak coaching"
+              desc="If Off, Lumi will not auto-read Coach Nudges (you can still tap Listen)."
+              value={coachAutoSpeak}
+              onChange={updateCoachAutoSpeak}
+            />
+
+            
+            /* RESET_LUMI_SETTINGS */
+            <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl">
+              <p className="text-sm font-semibold">Reset voice settings</p>
+              <p className="text-xs text-white/60 mt-1">
+                Restores Lumi voice defaults (safe starting point).
+              </p>
+
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetLumiSettings();
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-white/10 border border-white/10 text-sm font-semibold hover:bg-white/15 transition"
+                >
+                  Reset to defaults
+                </button>
+              </div>
+            </div>
+
+
+            <div className="rounded-3xl bg-black/30 border border-white/10 p-6">
+              <p className="text-sm font-semibold">Test Lumi</p>
+              <p className="text-xs text-white/60 mt-1">
+                {supported
+                  ? `Voice detected: ${voiceName ?? "Default"}`
+                  : "Speech not supported in this browser."}
+              </p>
+
+              <div className="mt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    speak(
+                      "Hi, I’m Lumi. If you want, I can read match reasons out loud when you tap Show."
+                    )
+                  }
+                  disabled={!supported || !lumiEnabled}
+                  className={
+                    "px-4 py-2.5 rounded-xl text-sm font-semibold transition " +
+                    (!supported || !lumiEnabled
+                      ? "bg-white/10 text-white/40 cursor-not-allowed"
+                      : "bg-white text-black hover:bg-white/90")
+                  }
+                >
+                  Play test
+                </button>
+
+                <button
+                  type="button"
+                  onClick={stop}
+                  disabled={!supported || status !== "speaking"}
+                  className="px-4 py-2.5 rounded-xl bg-white/10 border border-white/10 text-sm font-semibold hover:bg-white/15 transition disabled:opacity-40"
+                >
+                  Stop
+                </button>
+              </div>
+
+              <p className="text-xs text-white/50 mt-4">
+                Auto-speak triggers when you tap “Show” on “Why am I seeing this profile?”
+              </p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </OnboardingGate>
+  );
+}

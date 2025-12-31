@@ -1,0 +1,72 @@
+const KEY_AUTO = "rivva_lumi_autospeak";
+const KEY_ENABLED = "rivva_lumi_enabled";
+const KEY_COACH_AUTO = "rivva_lumi_coach_autospeak";
+const KEY_QUIZ_AUTO = "rivva_lumi_quiz_autospeak";
+
+export function getLumiAutoSpeak(): boolean {
+  if (typeof window === "undefined") return false;
+  const raw = localStorage.getItem(KEY_AUTO);
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  return false;
+}
+
+export function setLumiAutoSpeak(val: boolean) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(KEY_AUTO, val ? "true" : "false");
+}
+
+export function getLumiEnabled(): boolean {
+  if (typeof window === "undefined") return true;
+  const raw = localStorage.getItem(KEY_ENABLED);
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  return true;
+}
+
+export function setLumiEnabled(val: boolean) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(KEY_ENABLED, val ? "true" : "false");
+}
+
+export function getLumiCoachAutoSpeak(): boolean {
+  if (typeof window === "undefined") return true;
+  const raw = localStorage.getItem(KEY_COACH_AUTO);
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  return true;
+}
+
+export function setLumiCoachAutoSpeak(val: boolean) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(KEY_COACH_AUTO, val ? "true" : "false");
+}
+
+export function getLumiQuizAutoSpeak(): boolean {
+  if (typeof window === "undefined") return true;
+  const raw = localStorage.getItem(KEY_QUIZ_AUTO);
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  return true;
+}
+
+export function setLumiQuizAutoSpeak(val: boolean) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(KEY_QUIZ_AUTO, val ? "true" : "false");
+}
+
+
+export function resetLumiSettings() {
+  if (typeof window === "undefined") return;
+
+  // Defaults
+  setLumiEnabled(true);
+  setLumiAutoSpeak(false);
+  setLumiQuizAutoSpeak(true);
+  setLumiCoachAutoSpeak(true);
+
+  // Force other tabs/components to update immediately
+  try {
+    window.dispatchEvent(new Event("storage"));
+  } catch {}
+}

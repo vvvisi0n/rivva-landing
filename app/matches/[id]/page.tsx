@@ -4,9 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
-import LumiOrb from "@/components/LumiOrb";
+import RivvaOrb from "@/components/RivvaOrb";
 import OnboardingGate from "@/components/OnboardingGate";
 import CoachNudge from "@/components/CoachNudge";
+import WhyThisMatch from "@/components/WhyThisMatch";
+import BlockReportModal from "@/components/BlockReportModal";
 
 import { MOCK_MATCHES, type Match } from "@/lib/matches";
 import { isLiked, toggleLike } from "@/lib/likes";
@@ -16,10 +18,13 @@ export default function MatchProfilePage() {
   const router = useRouter();
   const id = params?.id ?? "";
 
-   const match: Match | undefined = useMemo(
+  const match: Match | undefined = useMemo(
     () => MOCK_MATCHES.find((m) => m.id === id),
     [id]
   );
+
+  const [liked, setLiked] = useState(false);
+  const [blockOpen, setBlockOpen] = useState(false);
 
   if (!match) {
     return (
@@ -29,9 +34,7 @@ export default function MatchProfilePage() {
     );
   }
 
-  const matchId = match.id; // now a guaranteed string
-
-  const [liked, setLiked] = useState(false);
+  const matchId = match.id;
 
   useEffect(() => {
     setLiked(isLiked(matchId));
@@ -51,7 +54,6 @@ export default function MatchProfilePage() {
     <OnboardingGate>
       <main className="min-h-screen bg-[#0b0b14] text-white px-6 py-12">
         <section className="max-w-3xl mx-auto">
-          {/* header */}
           <div className="flex items-center justify-between mb-6">
             <button
               onClick={() => router.back()}
@@ -59,18 +61,15 @@ export default function MatchProfilePage() {
             >
               ← Back
             </button>
-            <div className="scale-75">
-              <LumiOrb />
+            <div className="scale-75 rivva-orb">
+              <RivvaOrb />
             </div>
           </div>
 
-          {/* top card */}
           <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl">
             <div className="flex items-start gap-5">
-              {/* profile image */}
               <div className="h-24 w-24 rounded-3xl overflow-hidden bg-white/5 border border-white/10">
                 {images[0] ? (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={images[0]}
                     alt={match.name}
@@ -123,14 +122,26 @@ export default function MatchProfilePage() {
             </div>
 
             <p className="text-white/80 leading-relaxed mt-5">{bio}</p>
+
+            <div className="mt-5">
+              <button
+                type="button"
+                onClick={() => setBlockOpen(true)}
+                className="w-full px-5 py-3 rounded-xl bg-white/10 border border-white/10 hover:bg-white/15 transition font-semibold text-white"
+              >
+                Block or report
+              </button>
+            </div>
           </div>
 
-          {/* nudge */}
-          <div className="mt-5">
+          <div className="mt-5" data-coach-nudge>
             <CoachNudge match={match} />
           </div>
 
-          {/* gallery (optional) */}
+          <div className="mt-5">
+            <WhyThisMatch match={match} />
+          </div>
+
           {images.length > 1 && (
             <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3">
               {images.slice(1).map((src, i) => (
@@ -138,7 +149,6 @@ export default function MatchProfilePage() {
                   key={`${src}-${i}`}
                   className="rounded-2xl overflow-hidden border border-white/10 bg-white/5"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={src}
                     alt={`${match.name} photo ${i + 2}`}
@@ -149,7 +159,6 @@ export default function MatchProfilePage() {
             </div>
           )}
 
-          {/* actions */}
           <div className="mt-8 flex flex-col sm:flex-row gap-3">
             <Link
               href={`/chat/${matchId}`}
@@ -165,6 +174,13 @@ export default function MatchProfilePage() {
               More matches
             </Link>
           </div>
+
+          <BlockReportModal
+            open={blockOpen}
+            onClose={() => setBlockOpen(false)}
+            matchId={matchId}
+            matchName={match.name}
+          />
         </section>
       </main>
     </OnboardingGate>

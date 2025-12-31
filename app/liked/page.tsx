@@ -2,182 +2,177 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import LumiOrb from "@/components/LumiOrb";
-import TypingBubble from "@/components/TypingBubble";
-import { FEED, type Match } from "@/lib/matches";
 
-const LIKE_KEY = "rivva_likes";
+import OnboardingGate from "@/components/OnboardingGate";
+import RivvaOrb from "@/components/RivvaOrb";
 
-function readLikes(): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    return JSON.parse(sessionStorage.getItem(LIKE_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
-
-function writeLikes(ids: string[]) {
-  sessionStorage.setItem(LIKE_KEY, JSON.stringify(ids));
-}
+import { MOCK_MATCHES, type Match } from "@/lib/matches";
+import { isLiked, toggleLike } from "@/lib/likes";
 
 export default function LikedPage() {
-  const router = useRouter();
-
+  const matches = useMemo(() => MOCK_MATCHES, []);
   const [likedIds, setLikedIds] = useState<string[]>([]);
-  const [isThinking, setIsThinking] = useState(true);
 
   useEffect(() => {
-    const ids = readLikes();
+    const ids = matches.filter((m) => isLiked(m.id)).map((m) => m.id);
     setLikedIds(ids);
+  }, [matches]);
 
-    // tiny Lumi "thinking" delay for vibe
-    const t = setTimeout(() => setIsThinking(false), 700);
-    return () => clearTimeout(t);
-  }, []);
+  const likedMatches: Match[] = useMemo(() => {
+    const set = new Set(likedIds);
+    return matches.filter((m) => set.has(m.id));
+  }, [likedIds, matches]);
 
-  const likedMatches = useMemo<Match[]>(
-    () => FEED.filter((m) => likedIds.includes(m.id)),
-    [likedIds]
-  );
-
-  function removeLike(id: string) {
-    const next = likedIds.filter((x) => x !== id);
-    setLikedIds(next);
-    writeLikes(next);
-  }
-
-  function openMatch(id: string) {
-    router.push(`/matches/${id}`);
+  function onUnlike(matchId: string) {
+    toggleLike(matchId);
+    setLikedIds((prev) => prev.filter((id) => id !== matchId));
   }
 
   return (
-    <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center px-6 py-12">
-      {/* Top orb */}
-      <div className="mb-6">
-        <LumiOrb />
-      </div>
-
-      <div className="w-full max-w-4xl">
-        {/* Header */}
-        <header className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold">Liked Matches</h1>
-            <p className="text-white/60 text-sm mt-1">
-              People your vibe said “yes” to.
-            </p>
-          </div>
-
-          <Link
-            href="/matches"
-            className="text-sm text-white/70 hover:text-white transition"
-          >
-            ← Matches
-          </Link>
-        </header>
-
-        {/* Lumi thinking */}
-        {isThinking && (
-          <div className="mb-6">
-            <TypingBubble label="Lumi is gathering your likes…" />
-          </div>
-        )}
-
-        {/* Empty state */}
-        {!isThinking && likedMatches.length === 0 && (
-          <section className="rounded-3xl bg-white/5 border border-white/10 p-10 text-center shadow-xl">
-            <h2 className="text-2xl font-semibold mb-2">
-              No likes yet.
-            </h2>
-            <p className="text-white/70 max-w-xl mx-auto">
-              That’s totally fine. Start exploring matches and when someone feels right,
-              tap Like — I’ll keep them here for you.
-            </p>
-
-            <div className="mt-6">
-              <Link
-                href="/matches"
-                className="inline-flex px-6 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition"
-              >
-                Explore Matches
-              </Link>
+    <OnboardingGate>
+      <main className="min-h-screen bg-[#0b0b14] text-white px-6 py-12">
+        <section className="max-w-3xl mx-auto">
+          <header className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold">Liked</h1>
+              <p className="text-white/60 text-sm mt-1">
+                Everyone you’ve liked so far.
+              </p>
             </div>
 
-            <p className="text-xs text-white/40 mt-4">
-              Lumi tip: trust the calm chemistry.
-            </p>
-          </section>
-        )}
-
-        {/* Grid */}
-        {!isThinking && likedMatches.length > 0 && (
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {likedMatches.map((m) => (
-              <div
-                key={m.id}
-                className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl hover:bg-white/10 transition"
+            <div className="flex items-center gap-3">
+              <Link
+                href="/matches"
+                className="text-sm text-white/70 hover:text-white"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-xl font-bold">
-                      {m.name}, {m.age}
-                    </h3>
-                    <p className="text-white/60 text-sm">{m.location ?? "—"}</p>
-                  </div>
-
-                  <div className="text-right">
-                    <p className="text-[11px] text-white/50">compatibility</p>
-                    <p className="text-2xl font-extrabold bg-gradient-to-r from-purple-400 to-cyan-300 bg-clip-text text-transparent">
-                      {m.compatibility}%
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2 mt-3">
-  {(m.vibeTags ?? (m as any).tags ?? []).map((t: string) => (
-    <span
-      key={t}
-      className="text-xs px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/80"
-    >
-      {t}
-    </span>
-  ))}
-</div>
-
-                <p className="text-white/75 text-sm leading-relaxed mt-4 line-clamp-3">
-                  {m.bio}
-                </p>
-
-                <div className="mt-5 flex gap-2">
-                  <button
-                    onClick={() => openMatch(m.id)}
-                    className="flex-1 px-4 py-3 rounded-2xl bg-white text-black font-semibold hover:bg-white/90 transition"
-                  >
-                    View Profile
-                  </button>
-
-                  <button
-                    onClick={() => removeLike(m.id)}
-                    className="px-4 py-3 rounded-2xl bg-white/10 border border-white/10 text-white/80 hover:bg-white/15 transition"
-                  >
-                    Remove
-                  </button>
-                </div>
-
-                <div className="mt-3">
-                  <Link
-                    href={`/chat/${m.id}`}
-                    className="text-sm text-cyan-200 hover:text-cyan-100 transition"
-                  >
-                    Start Chat →
-                  </Link>
-                </div>
+                Matches
+              </Link>
+              <div className="scale-75 rivva-orb">
+                <RivvaOrb />
               </div>
-            ))}
-          </section>
-        )}
-      </div>
-    </main>
+            </div>
+          </header>
+
+          {likedMatches.length === 0 ? (
+            <div className="rounded-3xl bg-white/5 border border-white/10 p-8 shadow-xl">
+              <p className="text-white/80 leading-relaxed">
+                No likes yet. Head to Discover and start building your vibe.
+              </p>
+
+              <div className="mt-6 flex gap-3">
+                <Link
+                  href="/discover"
+                  className="px-5 py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition"
+                >
+                  Go to Discover
+                </Link>
+                <Link
+                  href="/matches"
+                  className="px-5 py-3 rounded-xl bg-white/10 border border-white/15 font-semibold hover:bg-white/15 transition"
+                >
+                  Back to Matches
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {likedMatches.map((m) => (
+                <div
+                  key={m.id}
+                  className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="h-20 w-20 rounded-2xl overflow-hidden bg-black/30 border border-white/10">
+                      <img
+                        src={m.images?.[0] ?? "/matches/placeholder.jpg"}
+                        alt={m.name}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h2 className="text-xl font-bold">
+                            {m.name}
+                            {m.age != null ? `, ${m.age}` : ""}
+                          </h2>
+
+                          {(m.location || m.lastActive) && (
+                            <p className="text-sm text-white/60 mt-1">
+                              {m.location ?? ""}
+                              {m.location && m.lastActive ? " • " : ""}
+                              {m.lastActive ?? ""}
+                            </p>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => onUnlike(m.id)}
+                          className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/10 border border-white/10 hover:bg-white/15 transition"
+                        >
+                          Unlike
+                        </button>
+                      </div>
+
+                      {m.bio && (
+                        <p className="text-white/80 text-sm leading-relaxed mt-3">
+                          {m.bio}
+                        </p>
+                      )}
+
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        <Link
+                          href={`/matches/${m.id}`}
+                          className="text-sm text-white/70 hover:text-white hover:underline"
+                        >
+                          Full profile →
+                        </Link>
+
+                        <Link
+                          href={`/matches/${m.id}#why-match`}
+                          className="text-sm text-white/50 hover:text-white/80 hover:underline"
+                        >
+                          Why we matched →
+                        </Link>
+
+                        <Link
+                          href={`/chat/${m.id}`}
+                          className="text-sm text-white/70 hover:text-white hover:underline"
+                        >
+                          Chat →
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-8 flex justify-center gap-3">
+            <Link
+              href="/discover"
+              className="px-4 py-2 rounded-xl bg-white/10 border border-white/10 text-sm hover:bg-white/15 transition"
+            >
+              Discover
+            </Link>
+            <Link
+              href="/inbox"
+              className="px-4 py-2 rounded-xl bg-white/10 border border-white/10 text-sm hover:bg-white/15 transition"
+            >
+              Inbox
+            </Link>
+            <Link
+              href="/settings"
+              className="px-4 py-2 rounded-xl bg-white/10 border border-white/10 text-sm hover:bg-white/15 transition"
+            >
+              Settings
+            </Link>
+          </div>
+        </section>
+      </main>
+    </OnboardingGate>
   );
 }

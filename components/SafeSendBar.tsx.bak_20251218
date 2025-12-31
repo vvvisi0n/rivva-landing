@@ -1,0 +1,100 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { analyzeMessage } from "@/lib/safety";
+import { loadPrivacySettings } from "@/lib/privacySettings";
+
+type Props = {
+  text: string;
+  onSend: () => void;
+};
+
+export default function SafeSendBar({ text, onSend }: Props) {
+  const [override, setOverride] = useState(false);
+
+  const privacy = useMemo(() => loadPrivacySettings(), []);
+
+  const scan = useMemo(() => {
+    if (!privacy.messageKeywordFilter) return { severity: "allow" as const };
+    return analyzeMessage(text || "");
+  }, [privacy.messageKeywordFilter, text]);
+
+  const blocked = scan.severity === "block";
+  const warned = scan.severity === "warn";
+
+  function handleSend() {
+    if (!privacy.messageKeywordFilter) {
+      onSend();
+      return;
+    }
+
+    if (blocked) return;
+
+    if (warned && !override) {
+      setOverride(true);
+      return;
+    }
+
+    setOverride(false);
+    onSend();
+  }
+
+  return (
+    <div className="space-y-2" data-coach-nudge>
+      {privacy.messageKeywordFilter && (blocked || warned) && (
+        <div
+          className={
+            "rounded-2xl border p-3 " +
+            (blocked
+              ? "bg-rose-500/10 border-rose-400/20"
+              : "bg-amber-500/10 border-amber-400/20")
+          }
+        >
+          <p className="text-sm font-semibold">
+            {blocked ? "Message blocked" : "Lumi safety check"}
+          </p>
+          <p className="text-xs text-white/70 mt-1">
+            {scan.message ??
+              (blocked
+                ? "This message violates Rivva’s safety rules."
+                : "This message may include scam/off-platform pressure.")}
+          </p>
+
+          {warned && (
+            <p className="text-[11px] text-white/60 mt-2">
+              Tap Send again to confirm.
+            </p>
+          )}
+        </div>
+      )}
+
+      <div className="flex justify-end gap-2">
+        {override && (
+          <button
+            type="button"
+            onClick={() => setOverride(false)}
+            className="px-4 py-2 rounded-xl bg-white/10 border border-white/10 text-xs font-semibold hover:bg-white/15 transition"
+          >
+            Cancel
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={handleSend}
+          disabled={blocked || !text.trim()}
+          className={
+            "px-4 py-2 rounded-xl text-xs font-semibold transition border " +
+            (blocked || !text.trim()
+              ? "bg-white/10 text-white/40 border-white/10 cursor-not-allowed"
+              : warned && !override
+              ? "bg-amber-300 text-black border-amber-200 hover:bg-amber-200"
+              : "bg-white text-black border-white hover:bg-white/90")
+          }
+        >
+          {blocked ? "Blocked" : warned && !override ? "Send (confirm)" : "Send"}
+        </button>
+      </div>
+    </div>
+  );
+}

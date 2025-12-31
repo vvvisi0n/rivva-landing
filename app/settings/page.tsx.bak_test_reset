@@ -1,0 +1,286 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import OnboardingGate from "@/components/OnboardingGate";
+import LumiOrb from "@/components/LumiOrb";
+import { tierLabel, type QuizTier } from "@/lib/quiz";
+import {
+  getLumiAutoSpeak,
+  setLumiAutoSpeak,
+  getLumiEnabled,
+  setLumiEnabled,
+  getLumiTone,
+  setLumiTone,
+  getLumiVoice,
+  setLumiVoice,
+  clearLumiPrefs,
+  type LumiTone,
+} from "@/lib/lumiSettings";
+
+type Settings = {
+  name: string;
+  lookingFor: string;
+  dealbreakers: string;
+  tier?: QuizTier;
+};
+
+const STORAGE_KEY = "rivva_settings";
+
+function Toggle({
+  label,
+  value,
+  onToggle,
+}: {
+  label: string;
+  value: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-sm text-white/80">{label}</span>
+      <button
+        type="button"
+        onClick={onToggle}
+        className={
+          "rounded-full px-3 py-1 text-xs font-semibold ring-1 transition " +
+          (value
+            ? "bg-violet-500/20 text-violet-200 ring-violet-400/30 hover:bg-violet-500/30"
+            : "bg-white/5 text-white/70 ring-white/15 hover:bg-white/10")
+        }
+      >
+        {value ? "On" : "Off"}
+      </button>
+    </div>
+  );
+}
+
+export default function SettingsPage() {
+  const [form, setForm] = useState<Settings>({
+    name: "",
+    lookingFor: "",
+    dealbreakers: "",
+    tier: undefined,
+  });
+  const [saved, setSaved] = useState(false);
+
+  // Lumi prefs
+  const [lumiEnabled, setLumiEnabledState] = useState(true);
+  const [autoSpeak, setAutoSpeakState] = useState(false);
+  const [tone, setToneState] = useState<LumiTone>("calm");
+  const [voice, setVoiceState] = useState("alloy");
+
+  useEffect(() => {
+    // load Lumi prefs
+    setLumiEnabledState(getLumiEnabled());
+    setAutoSpeakState(getLumiAutoSpeak());
+    setToneState(getLumiTone());
+    setVoiceState(getLumiVoice());
+
+    // load profile-ish settings
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as any;
+        if (parsed && typeof parsed === "object") delete parsed.city;
+
+        setForm({
+          name: parsed?.name ?? "",
+          lookingFor: parsed?.lookingFor ?? "",
+          dealbreakers: parsed?.dealbreakers ?? "",
+          tier: parsed?.tier ?? undefined,
+        });
+      }
+    } catch {}
+  }, []);
+
+  function update<K extends keyof Settings>(key: K, val: Settings[K]) {
+    setSaved(false);
+    setForm((f) => ({ ...f, [key]: val }));
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
+      setSaved(true);
+    } catch {}
+  }
+
+  function resetAllLocal() {
+    try {
+      localStorage.removeItem("rivva_profile");
+      localStorage.removeItem("rivva_settings");
+      localStorage.removeItem("rivva-liked-ids");
+      localStorage.removeItem("rivva_lumi_reasons");
+      clearLumiPrefs();
+      window.location.href = "/onboarding";
+    } catch {}
+  }
+
+  return (
+    <OnboardingGate>
+      <main className="min-h-screen text-white px-6 py-12">
+        <section className="max-w-3xl mx-auto">
+          <header className="flex items-center justify-between mb-8">
+            <Link href="/discover" className="text-sm text-white/70 hover:text-white">
+              ← Back to discover
+            </Link>
+            <div className="scale-75">
+              <LumiOrb />
+            </div>
+          </header>
+
+          <h1 className="text-3xl font-bold mb-2">Settings</h1>
+          <p className="text-white/60 text-sm mb-6">
+            Location is inferred via geolocation. Lumi voice features are always opt-in.
+          </p>
+
+          <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl flex flex-col gap-6">
+            {/* Profile */}
+            <div className="space-y-3">
+              <h2 className="text-lg font-semibold">Profile</h2>
+
+              <label className="text-sm text-white/80 block">
+                Name
+                <input
+                  value={form.name}
+                  onChange={(e) => update("name", e.target.value)}
+                  placeholder="Your name"
+                  className="mt-1 w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-400/60 placeholder:text-white/40"
+                />
+              </label>
+
+              <label className="text-sm text-white/80 block">
+                What you’re looking for
+                <textarea
+                  value={form.lookingFor}
+                  onChange={(e) => update("lookingFor", e.target.value)}
+                  placeholder="Short + real. e.g. 'stable, playful, emotionally present'"
+                  rows={3}
+                  className="mt-1 w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-400/60 placeholder:text-white/40 resize-none"
+                />
+              </label>
+
+              <label className="text-sm text-white/80 block">
+                Dealbreakers (optional)
+                <textarea
+                  value={form.dealbreakers}
+                  onChange={(e) => update("dealbreakers", e.target.value)}
+                  placeholder="Optional boundaries that matter to you"
+                  rows={2}
+                  className="mt-1 w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-400/60 placeholder:text-white/40 resize-none"
+                />
+              </label>
+
+              {form.tier && (
+                <div className="rounded-2xl bg-black/30 border border-white/10 p-4">
+                  <p className="text-sm font-semibold">Lumi tier: {tierLabel(form.tier)}</p>
+                  <p className="text-xs text-white/60 mt-1">Updated from your latest quiz.</p>
+                </div>
+              )}
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={save}
+                  className="px-5 py-2.5 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition"
+                >
+                  Save
+                </button>
+                {saved && <span className="text-xs text-green-300">Saved ✓</span>}
+
+                <Link href="/quiz" className="ml-auto text-sm text-violet-200 hover:text-violet-100">
+                  Retake quiz →
+                </Link>
+              </div>
+            </div>
+
+            {/* Lumi */}
+            <div className="space-y-3">
+              <h2 className="text-lg font-semibold">Lumi Voice</h2>
+
+              <div className="rounded-2xl bg-black/30 border border-white/10 p-4 space-y-3">
+                <Toggle
+                  label="Enable Lumi voice"
+                  value={lumiEnabled}
+                  onToggle={() => {
+                    const next = !lumiEnabled;
+                    setLumiEnabledState(next);
+                    setLumiEnabled(next);
+                  }}
+                />
+
+                <Toggle
+                  label="Auto-speak (opt-in)"
+                  value={autoSpeak}
+                  onToggle={() => {
+                    const next = !autoSpeak;
+                    setAutoSpeakState(next);
+                    setLumiAutoSpeak(next);
+                  }}
+                />
+
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-white/80">Tone</span>
+                  <select
+                    value={tone}
+                    onChange={(e) => {
+                      const t = e.target.value as LumiTone;
+                      setToneState(t);
+                      setLumiTone(t);
+                    }}
+                    className="rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-400/60"
+                  >
+                    <option value="calm">Calm</option>
+                    <option value="playful">Playful</option>
+                    <option value="serious">Serious</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-white/80">Voice</span>
+                  <select
+                    value={voice}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setVoiceState(v);
+                      setLumiVoice(v);
+                    }}
+                    className="rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-400/60"
+                  >
+                    <option value="alloy">Alloy</option>
+                    <option value="verse">Verse</option>
+                    <option value="aria">Aria</option>
+                    <option value="sage">Sage</option>
+                  </select>
+                </div>
+
+                <p className="text-[10px] text-white/40">
+                  Lumi voice uses AI-generated speech when available.
+                </p>
+              </div>
+            </div>
+
+            {/* Privacy + Reset */}
+            <div className="space-y-3">
+              <h2 className="text-lg font-semibold">Privacy & Reset</h2>
+
+              <div className="rounded-2xl bg-black/30 border border-white/10 p-4 space-y-3">
+                <p className="text-xs text-white/60">
+                  Everything is stored locally right now. You can wipe your device data anytime.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={resetAllLocal}
+                  className="w-full rounded-xl bg-rose-500/20 text-rose-200 ring-1 ring-rose-400/30 px-4 py-2 text-sm font-semibold hover:bg-rose-500/30"
+                >
+                  Reset Rivva on this device
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </OnboardingGate>
+  );
+}

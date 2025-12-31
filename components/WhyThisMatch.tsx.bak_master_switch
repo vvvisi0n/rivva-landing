@@ -1,0 +1,44 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import type { Match } from "@/lib/matches";
+import { loadProfile } from "@/lib/profile";
+import { buildWhyThisMatch } from "@/lib/whyThisMatch";
+
+export default function WhyThisMatch({ match }: { match: Match }) {
+  const [open, setOpen] = useState(false);
+
+  const reasons = useMemo(() => {
+    const profile = loadProfile();
+    return buildWhyThisMatch(match, profile);
+  }, [match]);
+
+  return (
+    <div className="mt-6 rounded-3xl bg-black/30 border border-white/10 p-5">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold">Why am I seeing this profile?</p>
+          <p className="text-xs text-white/60 mt-1">
+            Rivva explains matches in plain language. No mystery scoring.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="px-3 py-2 rounded-xl bg-white/10 border border-white/10 text-sm font-semibold hover:bg-white/15 transition"
+        >
+          {open ? "Hide" : "Show"}
+        </button>
+      </div>
+
+      {open ? (
+        <ul className="mt-4 space-y-2 text-sm text-white/80 list-disc pl-5">
+          {reasons.map((r) => (
+            <li key={r}>{r}</li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}

@@ -1,0 +1,185 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+
+export type VoiceStatus = "idle" | "speaking" | "paused";
+
+/**
+ * A small helper to split long text into natural chunks.
+ * This avoids robotic run-ons and reduces glitchiness in some voices.
+ */
+function chunkText(text: string) {
+  const cleaned = text.replace(/\s+/g, " ").trim();
+  if (!cleaned) return [];
+
+  // Split on sentence-ish boundaries.
+  const parts = cleaned.split(/(?<=[.!?])\s+/);
+
+  // Merge tiny fragments so we don't stutter.
+  const chunks: string[] = [];
+  let buffer = "";
+
+  for (const p of parts) {
+    if ((buffer + " " + p).trim().length < 120) {
+      buffer = (buffer + " " + p).trim();
+    } else {
+      if (buffer) chunks.push(buffer);
+      buffer = p.trim();
+    }
+  }
+  if (buffer) chunks.push(buffer);
+
+  return chunks;
+}
+
+export default function useLumiVoice() {
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [status, setStatus] = useState<VoiceStatus>("idle");
+  const [enabled, setEnabled] = useState(true);
+
+  // Track queue so we can stop cleanly
+  const queueRef = useRef<SpeechSynthesisUtterance[]>([]);
+  const speakingRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+
+    function load() {
+      const v = window.speechSynthesis.getVoices();
+      setVoices(v);
+    }
+
+    load();
+    window.speechSynthesis.onvoiceschanged = load;
+
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, []);
+
+  const bestVoice = useMemo(() => {
+    if (!voices.length) return null;
+
+    const preferredNames = [
+      // macOS / iOS Safari
+      "Samantha",
+      "Ava",
+      "Allison",
+      "Victoria",
+      // Chrome/Edge nicer defaults
+      "Google US English",
+      "Google UK English Female",
+      "Microsoft Aria Online",
+      "Microsoft Jenny Online",
+    ];
+
+    // Avoid obviously low-quality voices
+    const avoid = /compact|robot|zira|mark|fred|male/i;
+
+    const candidates = voices
+      .filter((v) => v.lang?.startsWith("en"))
+      .filter((v) => !avoid.test(v.name))
+      // prefer localService (usually smoother)
+      .sort((a, b) => {
+        const aLocal = a.localService ? 1 : 0;
+        const bLocal = b.localService ? 1 : 0;
+        if (aLocal !== bLocal) return bLocal - aLocal;
+
+        const aUS = a.lang === "en-US" ? 1 : 0;
+        const bUS = b.lang === "en-US" ? 1 : 0;
+        if (aUS !== bUS) return bUS - aUS;
+
+        return 0;
+      });
+
+    // First try exact preferred match in candidates
+    for (const name of preferredNames) {
+      const found = candidates.find((v) => v.name === name);
+      if (found) return found;
+    }
+
+    // Then a "female-ish" hint
+    const femaleHint = candidates.find((v) =>
+      /female|woman|girl|samantha|ava|victoria|aria|jenny/i.test(v.name)
+    );
+
+    return femaleHint || candidates[0] || voices[0];
+  }, [voices]);
+
+  function stop() {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    queueRef.current = [];
+    speakingRef.current = false;
+    setStatus("idle");
+  }
+
+  function speak(text: string) {
+    if (!enabled) return;
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+
+    const chunks = chunkText(text);
+    if (!chunks.length) return;
+
+    stop(); // clear anything already speaking
+
+    const utterances = chunks.map((chunk, idx) => {
+      const u = new SpeechSynthesisUtterance(chunk);
+      if (bestVoice) u.voice = bestVoice;
+
+      // smoother pacing
+      u.rate = 0.92;   // slightly slower
+      u.pitch = 1.08;  // warmer
+      u.volume = 1;
+
+      // Keep status correct across a queue
+      u.onstart = () => {
+        speakingRef.current = true;
+        setStatus("speaking");
+      };
+
+      u.onend = () => {
+        // if this was the last chunk, go idle
+        if (idx === utterances.length - 1) {
+          speakingRef.current = false;
+          setStatus("idle");
+        }
+      };
+
+      u.onerror = () => {
+        speakingRef.current = false;
+        setStatus("idle");
+      };
+
+      return u;
+    });
+
+    queueRef.current = utterances;
+    utterances.forEach((u) => window.speechSynthesis.speak(u));
+  }
+
+  function pause() {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.pause();
+    setStatus("paused");
+  }
+
+  function resume() {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.resume();
+    setStatus("speaking");
+  }
+
+  return {
+    supported: typeof window !== "undefined" && "speechSynthesis" in window,
+    status,
+    enabled,
+    setEnabled,
+    speak,
+    stop,
+    pause,
+    resume,
+    voiceName: bestVoice?.name ?? null,
+    isSpeaking: speakingRef.current,
+  };
+}

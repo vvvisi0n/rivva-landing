@@ -1,49 +1,37 @@
 "use client";
 
-import React from "react";
-
-type LumiOrbProps = {
-  size?: number; // px
+type Props = {
   className?: string;
+  title?: string;
 };
 
-export default function LumiOrb({ size = 180, className = "" }: LumiOrbProps) {
+export default function LumiOrb({ className, title = "Lumi" }: Props) {
   return (
     <div
-      className={`relative flex items-center justify-center ${className}`}
-      style={{ width: size, height: size }}
-      aria-hidden
+      aria-hidden="true"
+      title={title}
+      className={
+        className ??
+        [
+          "relative h-10 w-10 rounded-full",
+          "border border-white/10",
+          "shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_10px_30px_rgba(0,0,0,0.35)]",
+          "bg-gradient-to-br from-white/10 via-white/5 to-white/0",
+          "overflow-hidden",
+        ].join(" ")
+      }
     >
-      {/* Outer glow */}
-      <div
-        className="absolute inset-0 rounded-full blur-2xl opacity-60 animate-pulse"
-        style={{
-          background:
-            "radial-gradient(circle at 30% 30%, rgba(124,58,237,0.9), rgba(34,211,238,0.35), transparent 65%)",
-        }}
-      />
+      {/* soft core */}
+      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-violet-300/25 via-indigo-300/10 to-transparent" />
 
-      {/* Orb body */}
-      <div
-        className="relative rounded-full shadow-2xl animate-[float_4s_ease-in-out_infinite]"
-        style={{
-          width: size * 0.7,
-          height: size * 0.7,
-          background:
-            "radial-gradient(circle at 30% 25%, #a78bfa 0%, #7c3aed 35%, #22d3ee 70%, #0b0b14 100%)",
-          border: "1px solid rgba(255,255,255,0.12)",
-        }}
-      />
+      {/* glow ring */}
+      <div className="absolute inset-[-6px] rounded-full blur-xl bg-violet-400/10" />
 
-      {/* Ring */}
-      <div
-        className="absolute rounded-full border border-white/10 animate-[spin_18s_linear_infinite]"
-        style={{
-          width: size * 0.95,
-          height: size * 0.95,
-          boxShadow: "0 0 40px rgba(124,58,237,0.35)",
-        }}
-      />
+      {/* sparkle highlight */}
+      <div className="absolute top-2 left-2 h-2.5 w-2.5 rounded-full bg-white/50 blur-[0.5px]" />
+
+      {/* subtle motion (won’t be aggressive; low-stimulation can disable transitions globally) */}
+      <div className="absolute inset-0 rounded-full animate-pulse opacity-30 bg-violet-400/10" />
     </div>
   );
 }

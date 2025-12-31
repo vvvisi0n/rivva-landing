@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import LumiOrb from "@/components/LumiOrb";
+import RivvaOrb from "@/components/RivvaOrb";
 
 type Message = {
   sender: "user" | "lumi";
@@ -43,7 +43,7 @@ export default function LumiChatPage() {
     }, 900);
   }
 
-  // Very simple placeholder logic (we can replace with real AI later)
+  // Very simple placeholder logic (we can replace with real intelligence later)
   function generateLumiResponse(question: string) {
     if (question.toLowerCase().includes("compat")) {
       return "Compatibility isn’t about similarity — it’s about emotional pacing. People who match your rhythm feel effortless.";
@@ -62,12 +62,12 @@ export default function LumiChatPage() {
 
   return (
     <main className="min-h-screen flex flex-col bg-[#f6f3ff] relative">
-      <LumiOrb />
+      <RivvaOrb />
 
       {/* Header */}
       <div className="p-5 border-b border-purple-200 bg-white z-10">
         <h1 className="text-xl font-bold text-purple-700">Chat with Lumi</h1>
-        <p className="text-sm text-slate-500">Your personal AI dating companion</p>
+        <p className="text-sm text-slate-500">Your personal intelligence dating companion</p>
       </div>
 
       {/* Messages */}

@@ -1,0 +1,36 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import RivvaOrb from "@/components/RivvaOrb";
+import { loadPrivacySettings } from "@/lib/privacySettings";
+
+type Props = {
+  className?: string;
+};
+
+export default function RivvaOrb({ className }: Props) {
+  const [show, setShow] = useState(true);
+
+  useEffect(() => {
+    const apply = () => {
+      const p = loadPrivacySettings();
+      setShow(!!p.showRivvaOrb);
+    };
+
+    apply();
+    window.addEventListener("storage", apply);
+    window.addEventListener("focus", apply);
+    return () => {
+      window.removeEventListener("storage", apply);
+      window.removeEventListener("focus", apply);
+    };
+  }, []);
+
+  if (!show) return null;
+
+  return (
+    <div className={className ?? ""}>
+      <RivvaOrb />
+    </div>
+  );
+}

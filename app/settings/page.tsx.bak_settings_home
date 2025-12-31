@@ -1,0 +1,213 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import OnboardingGate from "@/components/OnboardingGate";
+import LumiOrb from "@/components/LumiOrb";
+import { tierLabel, type QuizTier } from "@/lib/quiz";
+import { getLumiAutoSpeak, setLumiAutoSpeak, getLumiEnabled, setLumiEnabled } from "@/lib/lumiSettings";
+import { getChatTone, setChatTone, type ChatTone } from "@/lib/chatTone";
+
+type Settings = {
+  name: string;
+  lookingFor: string;
+  dealbreakers: string;
+  tier?: QuizTier;
+};
+
+const STORAGE_KEY = "rivva_settings";
+
+export default function SettingsPage() {
+  const [form, setForm] = useState<Settings>({
+    name: "",
+    lookingFor: "",
+    dealbreakers: "",
+    tier: undefined,
+  });
+
+  const [saved, setSaved] = useState(false);
+
+  const [lumiEnabled, setLumiEnabledState] = useState(true);
+  const [autoSpeak, setAutoSpeak] = useState(false);
+  const [tone, setTone] = useState<ChatTone>("calm");
+
+  useEffect(() => {
+    setLumiEnabledState(getLumiEnabled());
+    setAutoSpeak(getLumiAutoSpeak());
+    setTone(getChatTone());
+
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setForm({
+          name: parsed.name ?? "",
+          lookingFor: parsed.lookingFor ?? "",
+          dealbreakers: parsed.dealbreakers ?? "",
+          tier: parsed.tier ?? undefined,
+        });
+      }
+    } catch {}
+  }, []);
+
+  function update<K extends keyof Settings>(key: K, val: Settings[K]) {
+    setSaved(false);
+    setForm((f) => ({ ...f, [key]: val }));
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
+      setSaved(true);
+    } catch {}
+  }
+
+  return (
+    <OnboardingGate>
+      <main className="min-h-screen bg-[#0b0b14] text-white px-6 py-12">
+        <section className="max-w-3xl mx-auto">
+          <header className="flex items-center justify-between mb-8">
+            <Link href="/matches" className="text-sm text-white/70 hover:text-white">
+              ← Back to matches
+            </Link>
+            <div className="scale-75">
+              <LumiOrb />
+            </div>
+          </header>
+
+          <h1 className="text-3xl font-bold mb-2">Settings</h1>
+          <p className="text-white/60 text-sm mb-6">
+            Local-only for now. Rivva uses geolocation, so there’s no city field.
+          </p>
+
+          <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl flex flex-col gap-4">
+            <label className="text-sm text-white/80">
+              Name
+              <input
+                value={form.name}
+                onChange={(e) => update("name", e.target.value)}
+                placeholder="Your name"
+                className="mt-1 w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-white/40"
+              />
+            </label>
+
+            <label className="text-sm text-white/80">
+              What you’re looking for
+              <textarea
+                value={form.lookingFor}
+                onChange={(e) => update("lookingFor", e.target.value)}
+                placeholder="Short + real. e.g. stable, playful, emotionally present"
+                rows={3}
+                className="mt-1 w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-white/40 resize-none"
+              />
+            </label>
+
+            <label className="text-sm text-white/80">
+              Dealbreakers (optional)
+              <textarea
+                value={form.dealbreakers}
+                onChange={(e) => update("dealbreakers", e.target.value)}
+                placeholder="Optional boundaries that matter to you"
+                rows={2}
+                className="mt-1 w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500 placeholder:text-white/40 resize-none"
+              />
+            </label>
+
+            <div className="rounded-2xl bg-black/30 border border-white/10 p-4">
+              <p className="text-sm font-semibold">Lumi Voice</p>
+              <p className="text-xs text-white/60 mt-1">
+                Opt in to Lumi speaking automatically after key moments.
+              </p>
+
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-sm text-white/80">Lumi enabled</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !lumiEnabled;
+                    setLumiEnabledState(next);
+                    setLumiEnabled(next);
+                  }}
+                  className={
+                    "rounded-full px-3 py-1 text-xs font-semibold ring-1 transition " +
+                    (lumiEnabled
+                      ? "bg-violet-500/20 text-violet-200 ring-violet-400/30 hover:bg-violet-500/30"
+                      : "bg-white/5 text-white/70 ring-white/15 hover:bg-white/10")
+                  }
+                >
+                  {lumiEnabled ? "On" : "Off"}
+                </button>
+              </div>
+
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-sm text-white/80">Auto-speak</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !autoSpeak;
+                    setAutoSpeak(next);
+                    setLumiAutoSpeak(next);
+                  }}
+                  className={
+                    "rounded-full px-3 py-1 text-xs font-semibold ring-1 transition " +
+                    (autoSpeak
+                      ? "bg-violet-500/20 text-violet-200 ring-violet-400/30 hover:bg-violet-500/30"
+                      : "bg-white/5 text-white/70 ring-white/15 hover:bg-white/10")
+                  }
+                >
+                  {autoSpeak ? "On" : "Off"}
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-black/30 border border-white/10 p-4">
+              <p className="text-sm font-semibold">Conversation tone</p>
+              <p className="text-xs text-white/60 mt-1">
+                This changes Lumi Coach suggestions in chat.
+              </p>
+
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-sm text-white/80">Tone</span>
+                <select
+                  value={tone}
+                  onChange={(e) => {
+                    const t = e.target.value as ChatTone;
+                    setTone(t);
+                    setChatTone(t);
+                  }}
+                  className="rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="calm">Calm</option>
+                  <option value="playful">Playful</option>
+                  <option value="serious">Serious</option>
+                </select>
+              </div>
+            </div>
+
+            {form.tier ? (
+              <div className="rounded-2xl bg-black/30 border border-white/10 p-4">
+                <p className="text-sm font-semibold">Lumi tier: {tierLabel(form.tier)}</p>
+                <p className="text-xs text-white/60 mt-1">Updated from your latest quiz.</p>
+              </div>
+            ) : null}
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={save}
+                className="px-5 py-2.5 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition"
+              >
+                Save
+              </button>
+
+              {saved ? <span className="text-xs text-green-300">Saved ✓</span> : null}
+
+              <Link href="/quiz" className="ml-auto text-sm text-purple-200 hover:text-purple-100">
+                Retake quiz →
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
+    </OnboardingGate>
+  );
+}

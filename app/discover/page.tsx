@@ -27,7 +27,7 @@ export default function DiscoverPage() {
   const feed = useMemo(() => FEED, []);
   
 
-  const newest = (Array.isArray(matches) ? matches : [])[(Array.isArray(matches) ? matches : []).length - 1];
+    const newest = FEED[FEED.length - 1];
 const [i, setI] = useState(0);
   const [likedIds, setLikedIds] = useState<string[]>([]);
   const [autoSpeakOn, setAutoSpeakOn] = useState(false);

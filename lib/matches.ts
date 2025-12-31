@@ -2,29 +2,27 @@ export type Match = {
   id: string;
   name: string;
 
-  // optional metadata
   age?: number;
   location?: string;
   bio?: string;
 
   images: string[];
 
-  // vibes for openers + reply sim
   vibe?: "spark" | "grounded" | "deep";
   vibeTags?: string[];
 
-  // compatibility UI (optional)
   compatibility?: number;
 
-  // inbox / list UI (optional)
   lastMessage?: string;
   lastActive?: string;
 
-  // profile prompts (optional but used by /matches/[id])
   prompts?: { q: string; a: string }[];
+
+  // Used by "Why we matched"
+  aboutMeTags?: string[];
+  lookingForTags?: string[];
 };
 
-// Single source of truth mock data
 export const MOCK_MATCHES: Match[] = [
   {
     id: "m1",
@@ -42,6 +40,8 @@ export const MOCK_MATCHES: Match[] = [
       { q: "My perfect weekend is…", a: "Tacos, a long walk, and a movie night." },
       { q: "A green flag I love is…", a: "Someone who communicates clearly." },
     ],
+    aboutMeTags: ["about.playful_witty", "about.curiosity", "about.foodie", "about.deep_convos"].filter(Boolean),
+    lookingForTags: ["look.communication", "look.chemistry_alignment", "look.real_connection"].filter(Boolean),
   },
   {
     id: "m2",
@@ -59,6 +59,8 @@ export const MOCK_MATCHES: Match[] = [
       { q: "I’m known for…", a: "Being consistent and easy to talk to." },
       { q: "My love language is…", a: "Quality time, always." },
     ],
+    aboutMeTags: ["about.calm_grounded", "about.active_fitness", "about.reader", "about.soft_life"].filter(Boolean),
+    lookingForTags: ["look.consistency", "look.emotional_safety", "look.intentional_dating", "look.long_term"].filter(Boolean),
   },
   {
     id: "m3",
@@ -76,10 +78,11 @@ export const MOCK_MATCHES: Match[] = [
       { q: "Something I’m proud of…", a: "I’ve rebuilt my life twice." },
       { q: "A lesson I learned about love…", a: "Slow is better than rushed." },
     ],
+    aboutMeTags: ["about.creative", "about.deep_convos", "about.warm_affectionate", "about.museums"].filter(Boolean),
+    lookingForTags: ["look.slow_burn", "look.teammate", "look.emotional_maturity"].filter(Boolean),
   },
 ];
 
-// Backwards-compatible exports
 export const FEED = MOCK_MATCHES;
 export const MATCHES = MOCK_MATCHES;
 

@@ -1,0 +1,97 @@
+"use client";
+
+import { useEffect, useMemo, useRef } from "react";
+import type { Match } from "@/lib/matches";
+import useLumiVoice from "@/components/useLumiVoice";
+import { getLumiEnabled, getLumiAutoSpeak, getLumiCoachAutoSpeak } from "@/lib/lumiSettings";
+
+function buildCoachNudge(match: Match) {
+  const name = match.name ?? "them";
+  const tags = match.vibeTags ?? [];
+  const vibe = match.vibe ?? "spark";
+  const compatibility = match.compatibility ?? null;
+
+  const tagLine = tags.length ? `I’m picking up ${tags.slice(0, 3).join(", ")} energy.` : "";
+
+  if (compatibility != null && compatibility >= 85) {
+    return `High compatibility with ${name}. Start simple: ask about something they genuinely enjoy this week. ${tagLine}`.trim();
+  }
+
+  if (vibe === "deep") {
+    return `With ${name}, go a little deeper. Try: “What’s something you’ve been learning about yourself lately?” ${tagLine}`.trim();
+  }
+
+  if (vibe === "grounded") {
+    return `With ${name}, keep it calm and real. Try: “What’s your ideal low-key weekend?” ${tagLine}`.trim();
+  }
+
+  return `Keep it light with ${name}. Try: “Quick question — what’s your current comfort show or song?” ${tagLine}`.trim();
+}
+
+export default function CoachNudge({ match }: { match: Match }) {
+  const lumi = useLumiVoice();
+  const lastSpokenRef = useRef<string>("");
+
+  const nudgeText = useMemo(() => buildCoachNudge(match), [match]);
+
+  useEffect(() => {
+    if (!lumi.supported) return;
+    if (!getLumiEnabled()) return;
+    if (!getLumiAutoSpeak()) return;
+    if (!getLumiCoachAutoSpeak()) return;
+
+    const text = (nudgeText || "").trim();
+    if (!text) return;
+
+    if (lastSpokenRef.current === text) return;
+    lastSpokenRef.current = text;
+
+    lumi.speak(text);
+  }, [lumi, nudgeText]);
+
+  return (
+    <div data-coach-nudge className="rounded-3xl bg-black/30 border border-white/10 p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold">Lumi Coach</p>
+          <p className="text-xs text-white/60 mt-1">
+            A quick nudge to help you start strong (opt-in voice).
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (!lumi.supported) return;
+            if (!getLumiEnabled()) return;
+
+            if (lumi.status === "speaking") lumi.stop();
+            else lumi.speak(nudgeText);
+          }}
+          disabled={!lumi.supported || !getLumiEnabled()}
+          className={
+            "px-3 py-2 rounded-xl text-xs font-semibold transition border " +
+            (!lumi.supported || !getLumiEnabled()
+              ? "bg-white/10 text-white/50 border-white/10 cursor-not-allowed"
+              : "bg-white/10 text-white border-white/20 hover:bg-white/15")
+          }
+          title={
+            !lumi.supported
+              ? "Speech not supported in this browser"
+              : !getLumiEnabled()
+              ? "Enable Lumi voice in Settings → Accessibility"
+              : lumi.voiceName ?? "Voice"
+          }
+        >
+          {lumi.status === "speaking" ? "Stop" : "Listen"}
+        </button>
+      </div>
+
+      <p className="COACH_NUDGE_TEXT text-white/80 leading-relaxed mt-4">{nudgeText}</p>
+
+      <p className="text-xs text-white/40 mt-4">
+        Auto-speak runs only if Lumi Voice + Auto-speak are enabled in Settings → Accessibility.
+      </p>
+    </div>
+  );
+}

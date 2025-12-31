@@ -1,0 +1,17 @@
+function sendMessage(content: string) {
+  const trimmed = content.trim();
+  if (!trimmed || matchTyping) return;
+
+  if (!match) return; // ✅ add this guard
+
+  const myMsg: ChatMsg = {
+    id: uid(),
+    from: "me",
+    text: trimmed,
+    ts: Date.now(),
+    reactions: {},
+  };
+
+  let next = addMsg(match.id, myMsg);
+  ...
+}

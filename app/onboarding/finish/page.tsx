@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import LumiOrb from "@/components/LumiOrb";
+import RivvaOrb from "@/components/RivvaOrb";
 
 export default function FinishPage() {
   return (
     <main className="min-h-screen bg-[#0b0b14] text-white flex flex-col items-center justify-center px-6 py-16 text-center">
       <div className="mb-10">
-        <LumiOrb />
+        <RivvaOrb />
       </div>
 
       <h1 className="text-4xl md:text-5xl font-bold mb-3">

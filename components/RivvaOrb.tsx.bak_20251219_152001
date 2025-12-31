@@ -1,0 +1,53 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+type Props = {
+  className?: string;
+};
+
+/**
+ * Rivva Orb (MVP)
+ * - Optional: respects privacy setting showRivvaOrb (stored in rivva_privacy_settings)
+ * - Default: shows orb if setting not present
+ */
+export default function RivvaOrb({ className }: Props) {
+  const [show, setShow] = useState(true);
+
+  useEffect(() => {
+    const read = () => {
+      try {
+        const raw = localStorage.getItem("rivva_privacy_settings");
+        if (!raw) {
+          setShow(true);
+          return;
+        }
+        const p = JSON.parse(raw) as { showRivvaOrb?: boolean };
+        setShow(p.showRivvaOrb !== false);
+      } catch {
+        setShow(true);
+      }
+    };
+
+    read();
+    window.addEventListener("storage", read);
+    window.addEventListener("focus", read);
+    return () => {
+      window.removeEventListener("storage", read);
+      window.removeEventListener("focus", read);
+    };
+  }, []);
+
+  if (!show) return null;
+
+  return (
+    <div
+      aria-label="Rivva"
+      title="Rivva"
+      className={
+        className ??
+        "h-10 w-10 rounded-full bg-gradient-to-br from-violet-400/70 via-fuchsia-400/40 to-cyan-300/50 shadow-[0_0_30px_rgba(124,58,237,0.25)] border border-white/10"
+      }
+    />
+  );
+}

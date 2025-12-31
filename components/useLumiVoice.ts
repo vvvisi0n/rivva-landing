@@ -1,13 +1,97 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { getLumiEnabled, getLumiVoiceStyle, getLumiBreathMode, getLumiVoiceTuning } from "@/lib/lumiSettings";
 
 export type VoiceStatus = "idle" | "speaking" | "paused";
+
+/**
+ * Chunk text into natural sentence-sized pieces.
+ * Keeps punctuation so we can add pauses that feel human.
+ */
+function chunkText(text: string) {
+  const cleaned = text.replace(/\s+/g, " ").trim();
+  if (!cleaned) return [];
+
+  // Split into sentences (keep punctuation)
+  const parts = cleaned.split(/(?<=[.!?])\s+/);
+
+  // Merge small pieces to avoid stutter
+  const chunks: string[] = [];
+  let buf = "";
+
+  for (const p of parts) {
+    const next = (buf ? buf + " " : "") + p;
+    if (next.length <= 160) {
+      buf = next;
+    } else {
+      if (buf) chunks.push(buf.trim());
+      buf = p;
+    }
+  }
+
+  if (buf) chunks.push(buf.trim());
+
+  // Final cleanup: remove ultra-tiny chunks
+  return chunks.filter((c) => c.length >= 2);
+}
+
+/**
+ * Small helper to make speech feel less robotic:
+ * - slight per-chunk variance (very subtle)
+ * - micro-pauses based on punctuation
+ */
+function calcPauseMs(chunk: string) {
+  const c = chunk.trim();
+  if (!c) return 120;
+  if (/[.!?]$/.test(c)) return 260;
+  if (/[,:;]$/.test(c)) return 160;
+  return 120;
+}
+
+
+/**
+ * Breath Mode: adds tiny, natural pauses using punctuation-like cues
+ * (works in Web Speech without real SSML).
+ */
+function addBreath(text: string) {
+  const t = text.replace(/\s+/g, " ").trim();
+  if (!t) return t;
+
+  // Light touch: do not overdo it.
+  // Add an ellipsis pause after some commas and before some new thoughts.
+  let out = t;
+
+  // comma -> comma + tiny pause (sometimes)
+  out = out.replace(/,\s+/g, (m) => (Math.random() < 0.35 ? ", … " : ", "));
+
+  // add a pause before "and" sometimes
+  out = out.replace(/\s+(and|but|so)\s+/g, (m, w) => {
+    if (Math.random() < 0.18) return " … " + w + " ";
+    return " " + w + " ";
+  });
+
+  // soften very long text with one extra pause (rare)
+  if (out.length > 180 && Math.random() < 0.18) {
+    const mid = Math.floor(out.length * 0.55);
+    out = out.slice(0, mid) + " … " + out.slice(mid);
+  }
+
+  return out;
+}
+
+function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n));
+}
 
 export default function useLumiVoice() {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [status, setStatus] = useState<VoiceStatus>("idle");
   const [enabled, setEnabled] = useState(true);
+
+  const speakingRef = useRef(false);
+  const cancelRef = useRef(false);
+  const lastTextRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
@@ -28,59 +112,134 @@ export default function useLumiVoice() {
   const bestVoice = useMemo(() => {
     if (!voices.length) return null;
 
-    const preferred = [
-      // macOS / iOS Safari
+    const preferredNames = [
       "Samantha",
       "Ava",
       "Allison",
-      // Chrome / Edge
+      "Victoria",
       "Google US English",
       "Google UK English Female",
       "Microsoft Aria Online",
       "Microsoft Jenny Online",
     ];
 
-    // first try exact name match
-    for (const name of preferred) {
-      const found = voices.find((v) => v.name === name);
+    const avoid = /compact|robot|zira|mark|fred|male/i;
+
+    const candidates = voices
+      .filter((v) => v.lang?.startsWith("en"))
+      .filter((v) => !avoid.test(v.name))
+      .sort((a, b) => {
+        const aLocal = a.localService ? 1 : 0;
+        const bLocal = b.localService ? 1 : 0;
+        if (aLocal !== bLocal) return bLocal - aLocal;
+
+        const aUS = a.lang === "en-US" ? 1 : 0;
+        const bUS = b.lang === "en-US" ? 1 : 0;
+        if (aUS !== bUS) return bUS - aUS;
+
+        return 0;
+      });
+
+    for (const name of preferredNames) {
+      const found = candidates.find((v) => v.name === name);
       if (found) return found;
     }
 
-    // then try any high-quality en voices
-    const en = voices.filter((v) => v.lang.startsWith("en"));
-    const femaleHint = en.find((v) =>
-      /female|woman|girl|samantha|ava|aria|jenny/i.test(v.name)
+    const femaleHint = candidates.find((v) =>
+      /female|woman|girl|samantha|ava|victoria|aria|jenny/i.test(v.name)
     );
-    return femaleHint || en[0] || voices[0];
+
+    return femaleHint || candidates[0] || voices[0];
   }, [voices]);
+
+  function stop() {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    cancelRef.current = true;
+    window.speechSynthesis.cancel();
+    speakingRef.current = false;
+    setStatus("idle");
+  }
 
   function speak(text: string) {
     if (!enabled) return;
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    const t = text.trim();
-    if (!t) return;
+    if (!getLumiEnabled()) return;
 
-    window.speechSynthesis.cancel();
+    const cleaned = text.replace(/\s+/g, " ").trim();
+    if (!cleaned) return;
 
-    const utter = new SpeechSynthesisUtterance(t);
-    if (bestVoice) utter.voice = bestVoice;
+    // If user taps speak twice with same text, restart cleanly
+    lastTextRef.current = cleaned;
 
-    // softer + more natural pacing
-    utter.rate = 0.95;  // slightly slower than default
-    utter.pitch = 1.05; // tiny lift for warmth
-    utter.volume = 1;
+    stop();
+    cancelRef.current = false;
 
-    utter.onstart = () => setStatus("speaking");
-    utter.onend = () => setStatus("idle");
-    utter.onerror = () => setStatus("idle");
+    const prepared = breathOn ? addBreath(cleaned) : cleaned;
+    const chunks = chunkText(prepared);
+    const style = getLumiVoiceStyle();
+    const breathOn = getLumiBreathMode();
+    const tuning = getLumiVoiceTuning();
 
-    window.speechSynthesis.speak(utter);
-  }
+    const STYLE = {
+      calm: { baseRate: 0.90, basePitch: 1.06, pauseMul: 1.00 },
+      playful: { baseRate: 0.94, basePitch: 1.10, pauseMul: 0.85 },
+      intimate: { baseRate: 0.86, basePitch: 1.04, pauseMul: 1.20 },
+    } as const;
+    const cfg = STYLE[style] ?? STYLE.calm;
 
-  function stop() {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    setStatus("idle");
+    if (!chunks.length) return;
+
+    const baseRate = cfg.baseRate * tuning.rateMul;
+    const basePitch = cfg.basePitch * tuning.pitchMul;
+
+    let idx = 0;
+
+    const speakNext = () => {
+      if (cancelRef.current) return;
+
+      if (idx >= chunks.length) {
+        speakingRef.current = false;
+        setStatus("idle");
+        return;
+      }
+
+      const chunk = chunks[idx];
+
+      const u = new SpeechSynthesisUtterance(chunk);
+      if (bestVoice) u.voice = bestVoice;
+
+      // Subtle variance makes it feel less "flat"
+      const rateVar = (Math.random() - 0.5) * 0.04;  // ±0.02
+      const pitchVar = (Math.random() - 0.5) * 0.06; // ±0.03
+
+      u.rate = clamp(baseRate + rateVar, 0.84, 0.96);
+      u.pitch = clamp(basePitch + pitchVar, 1.00, 1.14);
+      u.volume = 1;
+
+      u.onstart = () => {
+        speakingRef.current = true;
+        setStatus("speaking");
+      };
+
+      u.onend = () => {
+        idx += 1;
+
+        // add micro pause between chunks
+        const pause = calcPauseMs(chunk);
+        setTimeout(() => {
+          speakNext();
+        }, pause);
+      };
+
+      u.onerror = () => {
+        speakingRef.current = false;
+        setStatus("idle");
+      };
+
+      window.speechSynthesis.speak(u);
+    };
+
+    speakNext();
   }
 
   function pause() {
@@ -96,8 +255,7 @@ export default function useLumiVoice() {
   }
 
   return {
-    supported:
-      typeof window !== "undefined" && "speechSynthesis" in window,
+    supported: typeof window !== "undefined" && "speechSynthesis" in window,
     status,
     enabled,
     setEnabled,
@@ -106,5 +264,6 @@ export default function useLumiVoice() {
     pause,
     resume,
     voiceName: bestVoice?.name ?? null,
+    isSpeaking: speakingRef.current,
   };
 }

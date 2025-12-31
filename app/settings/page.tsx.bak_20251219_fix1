@@ -1,0 +1,93 @@
+"use client";
+
+import Link from "next/link";
+import OnboardingGate from "@/components/OnboardingGate";
+import LumiOrb from "@/components/LumiOrb";
+
+function Card({
+  title,
+  desc,
+  href,
+}: {
+  title: string;
+  desc: string;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="block rounded-3xl bg-white/5 border border-white/10 p-6 hover:bg-white/10 transition shadow-xl"
+    >
+      <h2 className="text-lg font-semibold">{title}</h2>
+      <p className="text-sm text-white/60 mt-2">{desc}</p>
+      <p className="text-sm text-white/70 mt-4">Open →</p>
+    </Link>
+  );
+}
+
+export default function SettingsHome() {
+  return (
+    <OnboardingGate>
+      <main className="min-h-screen bg-[#0b0b14] text-white px-6 py-12">
+        <section className="max-w-3xl mx-auto">
+          <header className="flex items-center justify-between mb-8">
+            <Link href="/matches" className="text-sm text-white/70 hover:text-white">
+              ← Back to matches
+            </Link>
+            <div className="scale-75">
+              <LumiOrb />
+            </div>
+          </header>
+
+          <h1 className="text-3xl font-bold mb-2">Settings</h1>
+          <p className="text-white/60 text-sm mb-8">
+            Built in a trust-first order: Profile → Discovery → Privacy → Privacy & Safety → Notifications → Accessibility → Support → Account.
+          </p>
+
+          <div className="grid gap-4">
+            <Card
+              title="Profile"
+              desc="Name, about me, what you’re looking for."
+              href="/settings/profile"
+            />
+            <Card
+              title="Discovery"
+              desc="Who you see: preferences, distance, advanced filters."
+              href="/settings/discovery"
+            />
+            <Card
+              title="Privacy"
+              desc="Hide online/read receipts, low-stimulation mode, message filters, quiet hours."
+              href="/settings/privacy"
+            />
+            <Card
+              title="Privacy & Safety"
+              desc="Blocking, reporting, messaging safety, verification toggles."
+              href="/settings/privacy-safety"
+            />
+            <Card
+              title="Notifications"
+              desc="Push + email notifications and in-app sounds."
+              href="/settings/notifications"
+            />
+            <Card
+              title="Accessibility"
+              desc="Font size, reduced motion, high contrast, voice features."
+              href="/settings/accessibility"
+            />
+            <Card
+              title="Support & Legal"
+              desc="Help, report a bug, community guidelines, policies."
+              href="/settings/support-legal"
+            />
+            <Card
+              title="Account"
+              desc="Login methods, sessions, deactivate, delete account."
+              href="/settings/account"
+            />
+          </div>
+        </section>
+      </main>
+    </OnboardingGate>
+  );
+}

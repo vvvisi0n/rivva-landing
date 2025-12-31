@@ -1,0 +1,97 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Match } from "@/lib/matches";
+import { loadProfile } from "@/lib/profile";
+import { buildWhyThisMatch } from "@/lib/whyThisMatch";
+import useLumiVoice from "@/components/useLumiVoice";
+import { getLumiAutoSpeak, getLumiEnabled } from "@/lib/lumiSettings";
+
+export default function WhyThisMatch({ match }: { match: Match }) {
+  const [open, setOpen] = useState(false);
+  const prevOpen = useRef(false);
+
+  const { supported, speak, stop, status } = useLumiVoice();
+
+  const reasons = useMemo(() => {
+    const profile = loadProfile();
+    return buildWhyThisMatch(match, profile);
+  }, [match]);
+
+  const speechText = useMemo(() => {
+    const header = `Here’s why Rivva is showing you ${match.name}.`;
+    const bullets = reasons.map((r) => `• ${r}`).join(" ");
+    return `${header} ${bullets}`;
+  }, [match.name, reasons]);
+
+  const lumiEnabled = useMemo(() => getLumiEnabled(), []);
+  const canSpeak = supported && lumiEnabled;
+
+  useEffect(() => {
+    if (!supported) return;
+
+    const justOpened = open && !prevOpen.current;
+    prevOpen.current = open;
+
+    if (!justOpened) return;
+
+    if (!getLumiEnabled()) return;
+    if (!getLumiAutoSpeak()) return;
+
+    speak(speechText);
+  }, [open, supported, speak, speechText]);
+
+  return (
+    <div className="mt-6 rounded-3xl bg-black/30 border border-white/10 p-5">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold">Why am I seeing this profile?</p>
+          <p className="text-xs text-white/60 mt-1">
+            Rivva explains matches in plain language. No mystery scoring.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (!canSpeak) return;
+              if (status === "speaking") stop();
+              else speak(speechText);
+            }}
+            disabled={!canSpeak}
+            className={
+              "px-3 py-2 rounded-xl border text-sm font-semibold transition " +
+              (canSpeak
+                ? "bg-white/10 border-white/10 hover:bg-white/15"
+                : "bg-white/5 border-white/10 text-white/40 cursor-not-allowed")
+            }
+            title={canSpeak ? "Speak" : "Enable Lumi voice in Settings → Accessibility"}
+          >
+            {status === "speaking" ? "Stop" : "Speak"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="px-3 py-2 rounded-xl bg-white/10 border border-white/10 text-sm font-semibold hover:bg-white/15 transition"
+          >
+            {open ? "Hide" : "Show"}
+          </button>
+        </div>
+      </div>
+
+      {open ? (
+        <ul className="mt-4 space-y-2 text-sm text-white/80 list-disc pl-5">
+          {reasons.map((r) => (
+            <li key={r}>{r}</li>
+          ))}
+        </ul>
+      ) : null}
+
+      <p className="text-xs text-white/40 mt-4">
+        Auto-speak runs only if Lumi Voice + Auto-speak are enabled in Settings → Accessibility.
+      </p>
+    </div>
+  );
+}
