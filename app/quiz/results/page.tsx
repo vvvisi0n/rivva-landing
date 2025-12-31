@@ -206,7 +206,8 @@ If you want, you can retake the quiz anytime and see how your vibe evolves.`
 
         {/* Lumi voice */}
         <div className="mt-6 flex justify-center">
-          <LumiVoiceButton text={voiceScript} />
+          <LumiVoiceButton textToSpeak={voiceScript} />
+
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">

@@ -123,7 +123,7 @@ export default function LikedPage() {
                     <h3 className="text-xl font-bold">
                       {m.name}, {m.age}
                     </h3>
-                    <p className="text-white/60 text-sm">{m.city}</p>
+                    <p className="text-white/60 text-sm">{m.location ?? "—"}</p>
                   </div>
 
                   <div className="text-right">
@@ -135,15 +135,15 @@ export default function LikedPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-2 mt-3">
-                  {m.tags.map((t) => (
-                    <span
-                      key={t}
-                      className="text-xs px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/80"
-                    >
-                      {t}
-                    </span>
-                  ))}
-                </div>
+  {(m.vibeTags ?? (m as any).tags ?? []).map((t: string) => (
+    <span
+      key={t}
+      className="text-xs px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/80"
+    >
+      {t}
+    </span>
+  ))}
+</div>
 
                 <p className="text-white/75 text-sm leading-relaxed mt-4 line-clamp-3">
                   {m.bio}

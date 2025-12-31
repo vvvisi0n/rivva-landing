@@ -62,7 +62,7 @@ export default function LumiChatPage() {
 
   return (
     <main className="min-h-screen flex flex-col bg-[#f6f3ff] relative">
-      <LumiOrb active />
+      <LumiOrb />
 
       {/* Header */}
       <div className="p-5 border-b border-purple-200 bg-white z-10">

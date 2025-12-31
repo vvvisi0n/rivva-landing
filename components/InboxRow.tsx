@@ -1,31 +1,37 @@
-"use client";
-
 import Link from "next/link";
 import { ThreadMeta, formatThreadTime } from "@/lib/inbox";
 
 export default function InboxRow({ t }: { t: ThreadMeta }) {
   return (
     <Link
-      href={`/chat/${t.id}`}
-      className="flex items-center gap-4 px-4 py-4 rounded-2xl hover:bg-white/5 transition border border-transparent hover:border-white/10"
+      href={`/chat/${t.matchId}`}
+      className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition"
     >
-      <img
-        src={t.avatar}
-        alt={t.name}
-        className="w-12 h-12 rounded-full object-cover"
-      />
+      <div className="flex items-center gap-3 min-w-0">
+        {t.avatar ? (
+          <img
+            src={t.avatar}
+            alt={t.name}
+            className="w-12 h-12 rounded-full object-cover"
+          />
+        ) : (
+          <div className="w-12 h-12 rounded-full bg-white/10" />
+        )}
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold truncate">{t.name}</h3>
-          <span className="text-xs text-white/50 ml-2 shrink-0">
-            {formatThreadTime(t.lastTs)}
-          </span>
+        <div className="min-w-0">
+          <div className="flex items-center">
+            <h3 className="font-semibold truncate">{t.name}</h3>
+            {t.lastActive && (
+              <span className="text-xs text-white/50 ml-2 shrink-0">
+                {formatThreadTime(t.lastActive)}
+              </span>
+            )}
+          </div>
+
+          <p className="text-sm text-white/60 truncate">
+            {t.lastMessage ?? "Start a conversation"}
+          </p>
         </div>
-
-        <p className="text-sm text-white/70 truncate">
-          {t.lastText}
-        </p>
       </div>
 
       {t.unread && (
