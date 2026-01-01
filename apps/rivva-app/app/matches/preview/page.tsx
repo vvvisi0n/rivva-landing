@@ -1,51 +1,34 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
+import * as Candidates from "@/lib/candidates";
 
-type Profile = {
-  name: string;
-  lookingFor: "serious" | "open" | "casual";
-};
+export default function MatchPreviewPage({
+  searchParams,
+}: {
+  searchParams: { id?: string };
+}) {
+  const id = (searchParams?.id ?? "").toString();
 
-const KEY = "rivva_profile_v1";
+  const candidate = useMemo(() => {
+    const raw =
+      (Candidates as any).CANDIDATES ??
+      (Candidates as any).candidates ??
+      (Candidates as any).MOCK_CANDIDATES ??
+      [];
 
-function loadProfile(): Profile | null {
-  try {
-    const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as Profile) : null;
-  } catch {
-    return null;
-  }
-}
+    return raw.find((c: any) => String(c?.id ?? c?.handle ?? c?.email ?? c?.name ?? "") === id) ?? null;
+  }, [id]);
 
-function intentLabel(v: Profile["lookingFor"]) {
-  if (v === "serious") return "Serious relationship";
-  if (v === "casual") return "Casual. Low pressure.";
-  return "Open to connection";
-}
-
-export default function MatchesPreviewPage() {
-  const [profile, setProfile] = useState<Profile | null>(null);
-
-  useEffect(() => {
-    setProfile(loadProfile());
-  }, []);
-
-  const headline = useMemo(() => {
-    if (!profile?.name) return "Your first match preview";
-    return `Hi ${profile.name}. Here’s your first match preview.`;
-  }, [profile]);
-
-  if (!profile) {
+  if (!id) {
     return (
-      <main className="mx-auto max-w-3xl px-6 pt-16 pb-24">
-        <div className="rounded-3xl bg-white/5 border border-white/10 p-8">
-          <h1 className="text-2xl font-semibold">No profile yet.</h1>
-          <p className="mt-2 text-sm text-white/65">Start onboarding so Rivva can match your pacing.</p>
+      <main className="mx-auto max-w-3xl px-6 pt-12 pb-20 text-white">
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-8 shadow-xl">
+          <p className="text-sm text-white/70">Missing candidate id.</p>
           <div className="mt-6">
-            <Link href="/onboarding" className="inline-flex rounded-full bg-white text-black px-5 py-3 text-sm font-semibold hover:bg-white/90">
-              Go to onboarding
+            <Link href="/matches" className="inline-flex items-center justify-center rounded-2xl px-4 py-2 bg-white text-black text-sm font-semibold">
+              Back to matches
             </Link>
           </div>
         </div>
@@ -54,64 +37,55 @@ export default function MatchesPreviewPage() {
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-6 pt-16 pb-24">
-      <div className="flex flex-col lg:flex-row gap-10 items-start">
-        <div className="flex-1">
-          <p className="text-xs uppercase tracking-wider text-white/50">First match</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">{headline}</h1>
-          <p className="mt-3 text-sm text-white/65">
-            Intent. {intentLabel(profile.lookingFor)}
-          </p>
-
-          <div className="mt-8 flex flex-wrap gap-3">
-            <button className="rounded-full bg-white text-black px-5 py-3 text-sm font-semibold hover:bg-white/90">
-              Request full access
-            </button>
-            <Link href="/onboarding" className="rounded-full bg-white/10 border border-white/10 px-5 py-3 text-sm font-semibold hover:bg-white/15">
-              Edit setup
-            </Link>
-          </div>
-
-          <p className="mt-6 text-xs text-white/55">
-            This is a preview build. We’ll tighten matching after we lock the flow.
-          </p>
-        </div>
-
-        <div className="w-full lg:w-[420px]">
-          <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-xl">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold">Match card</p>
-              <span className="text-xs text-white/55">Preview</span>
-            </div>
-
-            <div className="mt-5 rounded-3xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 p-5">
-              <p className="text-lg font-semibold">Ari. 29</p>
-              <p className="mt-1 text-sm text-white/65">Calm. Intentional. Clear communicator.</p>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <span className="rounded-full bg-black/30 border border-white/10 px-3 py-1 text-xs text-white/70">Pacing aligned</span>
-                <span className="rounded-full bg-black/30 border border-white/10 px-3 py-1 text-xs text-white/70">Low drama</span>
-                <span className="rounded-full bg-black/30 border border-white/10 px-3 py-1 text-xs text-white/70">Intentional dating</span>
-              </div>
-
-              <p className="mt-4 text-sm text-white/70 leading-relaxed">
-                “I’m here for something real. I like slow mornings, honest conversations, and people who keep their word.”
-              </p>
-
-              <div className="mt-5 flex gap-3">
-                <button className="flex-1 rounded-2xl bg-white text-black px-4 py-2.5 text-sm font-semibold hover:bg-white/90">
-                  Like
-                </button>
-                <button className="flex-1 rounded-2xl bg-white/10 border border-white/10 px-4 py-2.5 text-sm font-semibold hover:bg-white/15">
-                  Pass
-                </button>
-              </div>
-            </div>
-
-            <p className="mt-5 text-xs text-white/55">
-              Next. We’ll replace this with the real matching engine and real profiles.
+    <main className="mx-auto max-w-3xl px-6 pt-12 pb-20 text-white">
+      <div className="rounded-3xl border border-white/10 bg-white/5 p-8 shadow-xl">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-xs uppercase tracking-widest text-white/50">Preview</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight">
+              {candidate?.name ?? candidate?.displayName ?? "Candidate"}
+            </h1>
+            <p className="mt-2 text-sm text-white/70">
+              {candidate?.headline ?? candidate?.bioShort ?? candidate?.city ?? "Profile details coming soon."}
             </p>
           </div>
+
+          <Link
+            href="/matches"
+            className="inline-flex items-center justify-center rounded-2xl px-4 py-2 border border-white/15 bg-white/5 text-white text-sm font-semibold hover:bg-white/10 transition"
+          >
+            Back
+          </Link>
+        </div>
+
+        <div className="mt-8 rounded-2xl border border-white/10 bg-black/30 p-6">
+          <p className="text-sm font-semibold">Signal snapshot</p>
+          <div className="mt-4 space-y-3 text-sm text-white/70">
+            <p>
+              <span className="text-white/50">Location.</span> {candidate?.city ?? candidate?.location ?? "Unknown"}
+            </p>
+            <p>
+              <span className="text-white/50">Vibe.</span> {candidate?.vibe ?? candidate?.tone ?? "Not set"}
+            </p>
+            <p>
+              <span className="text-white/50">Notes.</span> {candidate?.notes ?? candidate?.bio ?? "More detail will appear as we enrich profiles."}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link
+            href={`/chat/${encodeURIComponent(id)}`}
+            className="inline-flex items-center justify-center rounded-2xl px-4 py-2 bg-white text-black text-sm font-semibold hover:bg-white/90 transition"
+          >
+            Start chat
+          </Link>
+          <Link
+            href="/quiz"
+            className="inline-flex items-center justify-center rounded-2xl px-4 py-2 border border-white/15 bg-white/5 text-white text-sm font-semibold hover:bg-white/10 transition"
+          >
+            Improve signal
+          </Link>
         </div>
       </div>
     </main>
