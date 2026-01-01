@@ -1,26 +1,21 @@
 import Link from "next/link";
 
-export const metadata = {
-  title: "Matches. Rivva",
-  description: "Your matches. Calm. Curated. Intentional.",
-};
+export const metadata = { title: "Matches. Rivva" };
 
 export default function MatchesPage() {
   return (
-    <main className="mx-auto max-w-5xl px-6 pt-12 pb-24">
-      <div className="rounded-3xl bg-white/5 border border-white/10 p-8">
-        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-          Matches
-        </h1>
-        <p className="mt-3 text-white/70 max-w-2xl">
-          This page is live so routing is stable. Next, we’ll connect it to real match data and the full match flow.
+    <main className="mx-auto max-w-3xl px-6 py-10 text-white">
+      <div className="rounded-3xl border border-white/10 bg-black/30 p-6">
+        <h1 className="text-2xl font-semibold tracking-tight">Matches</h1>
+        <p className="mt-2 text-sm text-white/70">
+          This is a placeholder page so the route is stable. We will replace it with the real matching UI next.
         </p>
 
         <div className="mt-6 flex flex-wrap gap-3">
-          <Link href="/" className="inline-flex items-center rounded-full bg-white/10 px-4 py-2 text-sm hover:bg-white/15 transition">
+          <Link href="/" className="inline-flex items-center justify-center rounded-2xl px-4 py-2 bg-white text-black text-sm font-medium">
             Home
           </Link>
-          <Link href="/invite" className="inline-flex items-center rounded-full bg-white text-black px-4 py-2 text-sm hover:opacity-90 transition">
+          <Link href="/invite" className="inline-flex items-center justify-center rounded-2xl px-4 py-2 border border-white/15 bg-white/5 text-white text-sm font-medium">
             Invite
           </Link>
         </div>
