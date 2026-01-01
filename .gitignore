@@ -58,3 +58,8 @@ yarn.lock
 # Lockfiles we do not use
 pnpm-lock.yaml
 yarn.lock
+
+# Prevent stray lockfiles
+pnpm-lock.yaml
+yarn.lock
+bun.lockb
