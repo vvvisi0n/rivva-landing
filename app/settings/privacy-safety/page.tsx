@@ -76,17 +76,17 @@ export default function PrivacySafetySettingsPage() {
 
                   return (
                     <div
-                      key={`${getBlockId(b)}-${b.createdAt}`}
+                      key={getBlockId(b)}
                       className="rounded-2xl bg-black/30 border border-white/10 p-4 flex items-start justify-between gap-4"
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-semibold truncate">{name}</p>
                         <p className="text-xs text-white/60 mt-1">
-                          Reason: <span className="text-white/80">{b.reason}</span>
+                          Reason: <span className="text-white/80">{(b as any).reason ?? "Blocked"}</span>
                         </p>
-                        {b.notes && (
+                        {(b as any).notes && (
                           <p className="text-xs text-white/60 mt-1">
-                            Notes: <span className="text-white/80">{b.notes}</span>
+                            Notes: <span className="text-white/80">{(b as any).notes}</span>
                           </p>
                         )}
                         <p className="text-[11px] text-white/40 mt-2">

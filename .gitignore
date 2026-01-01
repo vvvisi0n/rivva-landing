@@ -45,3 +45,8 @@ next-env.d.ts
 **/.next/
 .vercel/
 **/.vercel/
+
+# package manager lockfiles (we use npm)
+pnpm-lock.yaml
+yarn.lock
+bun.lockb

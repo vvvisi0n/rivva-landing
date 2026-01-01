@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+/* -------- Rivva base theme -------- */
+:root{
+  --bg:#0b0b14;
+  --card:rgba(255,255,255,.06);
+  --border:rgba(255,255,255,.12);
+  --text:#ffffff;
+  --muted:rgba(255,255,255,.70);
+  --dim:rgba(255,255,255,.55);
+  --purple:#7c3aed;
+  --cyan:#22d3ee;
+}
+
+html,body{height:100%}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  text-rendering:geometricPrecision;
+  font-feature-settings:"ss01" on,"ss02" on,"cv01" on;
+}
+
+::selection{background:rgba(124,58,237,.35);color:white}
+
+a{color:inherit;text-decoration:none}
+
+/* -------- Rivva reusable classes (NO @apply) -------- */
+.rivva-card{
+  border-radius:24px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.10);
+  box-shadow: 0 20px 50px rgba(0,0,0,.35);
+}
+
+.rivva-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:9999px;
+  padding:10px 18px;
+  font-size:14px;
+  font-weight:600;
+  transition: all .15s ease;
+}
+
+.rivva-btn-primary{
+  background:#ffffff;
+  color:#000000;
+}
+.rivva-btn-primary:hover{opacity:.92}
+
+.rivva-btn-ghost{
+  background:rgba(255,255,255,.10);
+  border:1px solid rgba(255,255,255,.10);
+  color:#ffffff;
+}
+.rivva-btn-ghost:hover{background:rgba(255,255,255,.14)}
+
+.rivva-pill{
+  display:inline-flex;
+  align-items:center;
+  border-radius:9999px;
+  padding:4px 12px;
+  font-size:12px;
+  color:rgba(255,255,255,.65);
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.10);
+}
+
+.rivva-glow{
+  position:absolute;
+  inset:-20%;
+  background:
+    radial-gradient(closest-side, rgba(124,58,237,0.22), transparent 60%),
+    radial-gradient(closest-side, rgba(34,211,238,0.18), transparent 60%);
+  filter:blur(80px);
+  z-index:0;
+  pointer-events:none;
+}

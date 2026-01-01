@@ -12,12 +12,12 @@ type Props = {
 };
 
 const REPORT_OPTIONS: { value: ReportReason; label: string; group: string }[] = [
-  { group: "Safety & Harassment", value: "harassment_bullying", label: "Harassment or bullying" },
-  { group: "Safety & Harassment", value: "hate_speech_discrimination", label: "Hate speech or discrimination" },
+  { group: "Safety & Harassment", value: "harassment", label: "Harassment or bullying" },
+  { group: "Safety & Harassment", value: "hate_speech", label: "Hate speech or discrimination" },
   { group: "Safety & Harassment", value: "sexual_harassment", label: "Sexual harassment" },
-  { group: "Safety & Harassment", value: "threatening_intimidation", label: "Threatening or intimidating behavior" },
-  { group: "Safety & Harassment", value: "stalking_obsessive", label: "Stalking or obsessive behavior" },
-  { group: "Safety & Harassment", value: "pressuring_personal_info", label: "Pressuring for personal information" },
+  { group: "Safety & Harassment", value: "threatening", label: "Threatening or intimidating behavior" },
+  { group: "Safety & Harassment", value: "stalking", label: "Stalking or obsessive behavior" },
+  { group: "Safety & Harassment", value: "pressure_personal_info", label: "Pressuring for personal information" },
 
   { group: "Inappropriate or Unwanted Content", value: "unwanted_sexual_messages", label: "Unwanted sexual messages" },
   { group: "Inappropriate or Unwanted Content", value: "explicit_images", label: "Explicit images without consent" },
@@ -55,7 +55,7 @@ export default function BlockReportModal({
   matchName,
   contextText,
 }: Props) {
-  const [reason, setReason] = useState<ReportReason>("harassment_bullying");
+  const [reason, setReason] = useState<ReportReason>("harassment");
   const [note, setNote] = useState("");
   const [toast, setToast] = useState<string | null>(null);
 
@@ -89,7 +89,7 @@ export default function BlockReportModal({
 
     // Always true in our MVP: reporting hides them for the reporter immediately (local block)
     // The anti-misuse piece is in the "countsTowardAction / needsReview" returned from reportUser.
-    if (res.needsReview) {
+    if (res?.needsReview) {
       setToast(
         "Saved. This report won’t count toward action yet because it needs evidence review (anti-misuse)."
       );
@@ -97,7 +97,7 @@ export default function BlockReportModal({
       return;
     }
 
-    if (!res.countsTowardAction) {
+    if (!res?.countsTowardAction) {
       setToast("Saved. This report was recorded but does not count toward action (anti-misuse).");
       closeSoon(1400);
       return;
@@ -119,7 +119,7 @@ export default function BlockReportModal({
 
   // UI helper text for the chosen reason
   const reasonNote =
-    reason === "hate_speech_discrimination"
+    reason === "hate_speech"
       ? "Anti-discrimination reports are checked against recent message context when available to reduce false reporting."
       : "Reports are recorded and pattern-thresholded to reduce misuse. You’re protected immediately either way.";
 
