@@ -1,46 +1,30 @@
 export type QuizTier = "A" | "B" | "C" | "D" | "E";
 
-export type MatchCandidate = {
+export type Candidate = {
   id: string;
-  name?: string;
-  age?: number;
-  city?: string;
-  lookingFor?: string;
+  name: string;
+  age: number;
+  city: string;
+  headline: string;
+  tags: string[];
+  quizTier?: QuizTier;
+  lastActiveLabel?: string;
+};
+
+export type UserSignal = {
+  quizTier?: QuizTier;
   aboutMeTags?: string[];
   lookingForTags?: string[];
-  quizTier?: QuizTier;
-
-  // Optional future fields. Safe to ignore if missing.
-  values?: string[];
-  dealbreakers?: string[];
 };
 
-export type ViewerProfile = {
-  id?: string;
-  age?: number;
-  city?: string;
-  lookingFor?: string;
-  aboutMeTags?: string[];
-  lookingForTags?: string[];
-  quizTier?: QuizTier;
-
-  // Optional future fields.
-  values?: string[];
-  dealbreakers?: string[];
-
-  // Preferences.
-  distanceMiles?: number;
+export type ScoreBreakdown = {
+  tierMatch: number;
+  tagOverlap: number;
+  recency: number;
+  total: number;
+  overlapTags: string[];
 };
 
-export type MatchExplanation = {
-  label: string;
-  detail: string;
-  weight: number;
+export type RankedCandidate = Candidate & {
+  score: ScoreBreakdown;
 };
-
-export type ScoredMatch = {
-  candidate: MatchCandidate;
-  score: number; // 0..100
-  explanations: MatchExplanation[];
-};
-
