@@ -6,7 +6,6 @@ import { loadProfile } from "@/lib/profile";
 import { MOCK_CANDIDATES } from "@/lib/candidates";
 import { rankCandidates } from "@/lib/matching/engine";
 
-export const metadata = { title: "Matches. Rivva" };
 
 function Pill({ children }: { children: React.ReactNode }) {
   return (
