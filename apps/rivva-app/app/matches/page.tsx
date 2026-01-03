@@ -3,21 +3,10 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { loadProfile } from "@/lib/profile";
-import { rankCandidates } from "@/lib/matching/engine";
 import { MOCK_CANDIDATES } from "@/lib/candidates";
+import { rankCandidates } from "@/lib/matching/engine";
 
-const getScore = (c: any): number => {
-  const v =
-    c?.totalScore ??
-    (typeof c?.score === "number" ? c.score : (c?.score?.total ?? c?.score?.overall ?? c?.score ?? 0));
-  return typeof v === "number" ? v : 0;
-};
-
-const getName = (c: any): string => String(c?.name ?? "Match");
-const getCity = (c: any): string => String(c?.city ?? "");
-const getAge = (c: any): string => (typeof c?.age === "number" ? String(c.age) : "");
-const getReasons = (c: any): string[] => (Array.isArray(c?.reasons) ? c.reasons : []);
-const getId = (c: any): string => String(c?.id ?? "");
+type Ranked = ReturnType<typeof rankCandidates>[number];
 
 function Pill({ children }: { children: React.ReactNode }) {
   return (
@@ -27,110 +16,126 @@ function Pill({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function MatchesPage() {
-  const [ranked, setRanked] = useState<any[]>([]);
+function getScore(m: any): number {
+  return (
+    m?.totalScore ??
+    (typeof m?.score === "number" ? m.score : (m?.score?.total ?? m?.score?.overall ?? 0)) ??
+    0
+  );
+}
 
-  const viewer = useMemo(() => (loadProfile() ?? ({} as any)) as any, []);
+function getReasons(m: any): string[] {
+  return (m?.reasons ?? m?.why ?? m?.explanations ?? []) as string[];
+}
+
+function getTags(m: any): string[] {
+  const fromOverlap =
+    (m?.score?.overlapTags ?? m?.overlapTags ?? m?.commonTags ?? []) as string[];
+  const fromCandidate = (m?.tags ?? m?.candidate?.tags ?? []) as string[];
+  const tags = (fromOverlap.length ? fromOverlap : fromCandidate).filter(Boolean);
+  return tags.slice(0, 6);
+}
+
+export default function MatchesPage() {
+  const [ranked, setRanked] = useState<Ranked[]>([]);
 
   useEffect(() => {
-    try {
-      const r = rankCandidates(viewer, MOCK_CANDIDATES) as any[];
-      setRanked(Array.isArray(r) ? r : []);
-    } catch {
-      setRanked([]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const viewer = (loadProfile() ?? {}) as any;
+    const results = rankCandidates(viewer, MOCK_CANDIDATES as any);
+    setRanked(results.slice(0, 12));
+  }, []);
+
+  const hasSignal = useMemo(() => {
+    const p = loadProfile() as any;
+    return Boolean(p?.quizTier || (p?.aboutMeTags?.length ?? 0) || (p?.lookingForTags?.length ?? 0));
   }, []);
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10 text-white">
+    <main className="mx-auto max-w-5xl px-6 py-10 text-white">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-widest text-white/50">Matches</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Your current wave</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Matches</h1>
           <p className="mt-2 text-sm text-white/65">
-            Fewer matches. Higher signal. We’ll keep improving the ranking as profile signals get stronger.
+            Small waves. Calm selection. This is v1 scaffolding.
           </p>
         </div>
-
         <div className="flex gap-2">
-          <Link href="/discover" className="rounded-2xl bg-white/10 border border-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/15 transition">
-            Discover
+          <Link href="/profile" className="rounded-2xl bg-white/10 border border-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/15 transition">
+            Edit profile
           </Link>
-          <Link href="/profile" className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90 transition">
-            Improve profile
+          <Link href="/discover" className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90 transition">
+            Discover
           </Link>
         </div>
       </div>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2">
-        {ranked.length === 0 ? (
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-            <p className="text-sm text-white/70">No matches yet.</p>
-            <p className="mt-2 text-xs text-white/55">
-              Complete your quiz and add tags in your profile to unlock better ranking.
-            </p>
-            <div className="mt-4 flex gap-2">
-              <Link href="/quiz" className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90 transition">
-                Take quiz
-              </Link>
-              <Link href="/profile" className="rounded-2xl bg-white/10 border border-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/15 transition">
-                Edit profile
-              </Link>
-            </div>
+      {!hasSignal && (
+        <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+          <p className="text-sm text-white/70">
+            Tip: add tags + quiz results for better ranking.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <Link href="/quiz" className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90 transition">
+              Take quiz
+            </Link>
+            <Link href="/profile" className="rounded-2xl bg-white/10 border border-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/15 transition">
+              Add tags
+            </Link>
           </div>
-        ) : (
-          ranked.map((c) => {
-            const id = getId(c);
-            const name = getName(c);
-            const age = getAge(c);
-            const city = getCity(c);
-            const score = getScore(c);
-            const reasons = getReasons(c).slice(0, 4);
+        </div>
+      )}
 
-            return (
-              <div key={id} className="rounded-3xl border border-white/10 bg-white/5 p-5 hover:bg-white/10 transition">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-lg font-semibold truncate">
-                      {name}
-                      {(age || city) && (
-                        <span className="text-white/55 font-normal">
-                          {" "}
-                          · {age || "—"}
-                          {city ? ` · ${city}` : ""}
-                        </span>
-                      )}
-                    </p>
-                    <p className="mt-1 text-xs text-white/55">ID: {id}</p>
-                  </div>
+      <div className="mt-8 grid gap-4 md:grid-cols-2">
+        {ranked.map((m: any) => {
+          const id = String(m?.id ?? m?.candidate?.id ?? crypto.randomUUID());
+          const name = (m?.name ?? m?.candidate?.name ?? "Match") as string;
+          const age = (m?.age ?? m?.candidate?.age ?? null) as number | null;
+          const city = (m?.city ?? m?.candidate?.city ?? "") as string;
+          const score = getScore(m);
+          const reasons = getReasons(m).slice(0, 3);
+          const tags = getTags(m);
 
-                  <div className="text-right">
-                    <p className="text-xs text-white/60">Score</p>
-                    <p className="text-lg font-semibold">{score}</p>
-                  </div>
+          return (
+            <Link
+              key={id}
+              href={`/matches/preview?id=${encodeURIComponent(id)}`}
+              className="rounded-3xl border border-white/10 bg-white/5 p-5 hover:bg-white/10 transition block"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-lg font-semibold truncate">
+                    {name}
+                    {age ? <span className="text-white/55 font-normal"> · {age}</span> : null}
+                  </p>
+                  {city ? <p className="mt-1 text-sm text-white/60 truncate">{city}</p> : null}
                 </div>
 
-                {reasons.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {reasons.map((r) => (
-                      <Pill key={r}>{r}</Pill>
-                    ))}
-                  </div>
-                )}
-
-                <div className="mt-5">
-                  <Link
-                    href={`/matches/preview?id=${encodeURIComponent(id)}`}
-                    className="inline-flex items-center justify-center rounded-2xl px-4 py-2 bg-white text-black text-sm font-semibold hover:bg-white/90 transition"
-                  >
-                    Preview →
-                  </Link>
+                <div className="text-right">
+                  <p className="text-xs text-white/60">Score</p>
+                  <p className="text-lg font-semibold">{Math.round(score)}</p>
                 </div>
               </div>
-            );
-          })
-        )}
+
+              {reasons.length > 0 && (
+                <div className="mt-4 space-y-1">
+                  {reasons.map((r: string, i: number) => (
+                    <p key={i} className="text-sm text-white/70 leading-relaxed">
+                      • {r}
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              {tags.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {tags.map((t) => (
+                    <Pill key={t}>{t}</Pill>
+                  ))}
+                </div>
+              )}
+            </Link>
+          );
+        })}
       </div>
     </main>
   );
