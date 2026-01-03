@@ -1,26 +1,20 @@
-export function submitInviteRequest(input: { email: string; source?: string }) {
-  if (typeof window === "undefined") return;
-  const KEY = "rivva_invite_requests_v1";
-  const curr = (() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      const arr = raw ? JSON.parse(raw) : [];
-      return Array.isArray(arr) ? arr : [];
-    } catch {
-      return [];
-    }
-  })();
+export type InviteRequestInput = {
+  email: string;
+  source?: string;
+};
 
-  const next = [
-    {
-      id: `i_${Math.random().toString(16).slice(2)}`,
-      email: input.email.trim().toLowerCase(),
-      source: input.source ?? "unknown",
-      createdAt: new Date().toISOString(),
-    },
-    ...curr,
-  ];
+export type InviteRequestResult = {
+  ok: boolean;
+  message?: string;
+};
 
-  localStorage.setItem(KEY, JSON.stringify(next));
-  return next[0];
+// MVP: no backend yet. Log + pretend success so UI flows + builds.
+export async function submitInviteRequest(
+  input: InviteRequestInput
+): Promise<InviteRequestResult> {
+  if (typeof window !== "undefined") {
+    // eslint-disable-next-line no-console
+    console.log("[invite] request", input);
+  }
+  return { ok: true };
 }
