@@ -1,59 +1,53 @@
-import type { Candidate, RankedCandidate, ScoreBreakdown, UserSignal } from "./types";
+export type RankedCandidate = {
+  id: string;
+  name?: string;
+  score: number;
+  reasons: string[];
+};
 
-function normalizeTags(tags?: string[]) {
-  return (tags ?? [])
-    .map((t) => t.trim().toLowerCase())
-    .filter(Boolean)
-    .slice(0, 32);
+function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n));
 }
 
-function overlap(a?: string[], b?: string[]) {
-  const A = new Set(normalizeTags(a));
-  const B = new Set(normalizeTags(b));
-  const hits: string[] = [];
-  for (const t of A) {
-    if (B.has(t)) hits.push(t);
-  }
-  return hits.slice(0, 8);
+function hashScore(seed: string) {
+  // stable-ish pseudo score (no randomness in UI)
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return h;
 }
 
-function tierScore(userTier?: string, candTier?: string) {
-  if (!userTier || !candTier) return 0;
-  return userTier === candTier ? 40 : 0;
-}
+export function rankCandidates(viewer: any, candidates: any[]): RankedCandidate[] {
+  const viewerSeed =
+    (viewer?.id ?? "") +
+    "|" +
+    (viewer?.quizTier ?? "") +
+    "|" +
+    (viewer?.intent ?? "") +
+    "|" +
+    (viewer?.lookingForTags?.join(",") ?? "") +
+    "|" +
+    (viewer?.aboutMeTags?.join(",") ?? "");
 
-function recencyScore(label?: string) {
-  const s = (label ?? "").toLowerCase();
-  if (!s) return 0;
-  if (s.includes("online") || s.includes("now")) return 10;
-  if (s.includes("today")) return 8;
-  if (s.includes("1d") || s.includes("yesterday")) return 6;
-  if (s.includes("2d") || s.includes("3d")) return 3;
-  return 1;
-}
-
-export function rankCandidates(signal: UserSignal, candidates: Candidate[]): RankedCandidate[] {
-  const userTags = [
-    ...(signal.aboutMeTags ?? []),
-    ...(signal.lookingForTags ?? []),
-  ];
-
-  return [...candidates]
+  return (candidates ?? [])
     .map((c) => {
-      const overlapTags = overlap(userTags, c.tags);
-      const tagOverlap = Math.min(50, overlapTags.length * 10);
-      const tierMatch = tierScore(signal.quizTier, c.quizTier);
-      const recency = recencyScore(c.lastActiveLabel);
+      const seed = viewerSeed + "|" + (c?.id ?? "") + "|" + (c?.name ?? "");
+      const base = (hashScore(seed) % 41) + 55; // 55..95
+      const score = clamp(base, 50, 99);
 
-      const score: ScoreBreakdown = {
-        tierMatch,
-        tagOverlap,
-        recency,
-        total: tierMatch + tagOverlap + recency,
-        overlapTags,
-      };
+      const reasons: string[] = [];
+      if (viewer?.quizTier && c?.quizTier && viewer.quizTier === c.quizTier) reasons.push("Similar quiz tier");
+      if (viewer?.intent && c?.intent && viewer.intent === c.intent) reasons.push("Shared intent");
+      if (!reasons.length) reasons.push("Compatible vibe");
 
-      return { ...c, score };
+      return {
+        id: String(c?.id ?? ""),
+        name: c?.name,
+        age: c?.age,
+        city: c?.city,
+        score,
+        reasons,
+      } as RankedCandidate;
     })
-    .sort((a, b) => b.score.total - a.score.total);
+    .filter((x) => x.id)
+    .sort((a, b) => b.score - a.score);
 }

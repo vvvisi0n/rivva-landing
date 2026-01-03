@@ -1,10 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { loadProfile } from "@/lib/profile";
-import { MOCK_CANDIDATES } from "@/lib/candidates";
 import { rankCandidates } from "@/lib/matching/engine";
+import { MOCK_CANDIDATES } from "@/lib/candidates";
+
+const getScore = (c: any): number => (
+  c?.totalScore ??
+  (typeof c?.score === "number" ? c.score : (c?.score?.total ?? c?.score?.overall ?? 0))
+);
+
+const getHeadline = (c: any): string => (
+  c?.headline ?? c?.bio ?? c?.summary ?? ""
+);
+
+const getTags = (c: any): string[] => (
+  (c?.overlapTags ?? c?.score?.overlapTags ?? c?.tags ?? c?.aboutMeTags ?? c?.lookingForTags ?? []) as string[]
+);
+
+
+function scoreNum(c: any) {
+  return (
+    c?.totalScore ??
+    (typeof c?.score === "number" ? c.score : (c?.score?.total ?? c?.score?.overall ?? 0))
+  );
+}
 
 
 function Pill({ children }: { children: React.ReactNode }) {
@@ -52,23 +73,23 @@ export default function MatchesPage() {
           <div key={c.id} className="rounded-3xl border border-white/10 bg-black/30 p-6">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-lg font-semibold truncate">{c.name} <span className="text-white/55 font-normal">· {c.age}</span></p>
-                <p className="mt-1 text-sm text-white/60 truncate">{c.city}</p>
+                <p className="text-lg font-semibold truncate">{c.name} <span className="text-white/55 font-normal">· {(c as any).age ?? ""}</span></p>
+                <p className="mt-1 text-sm text-white/60 truncate">{(c as any).city ?? ""}</p>
               </div>
 
               <div className="text-right">
                 <p className="text-xs text-white/60">Score</p>
-                <p className="text-lg font-semibold">{c.score.total}</p>
-                <p className="text-xs text-white/50">{c.lastActiveLabel ?? "Active"}</p>
+                <p className="text-lg font-semibold">{scoreNum(c)}</p>
+                <p className="text-xs text-white/50">{((c as any).lastActiveLabel ?? "Active")}</p>
               </div>
             </div>
 
             <p className="mt-4 text-sm text-white/75 leading-relaxed">
-              {c.headline}
+              {((c as any).headline ?? (c as any).tagline ?? "A thoughtful match curated for you.")}
             </p>
 
             <div className="mt-4 flex flex-wrap gap-2">
-              {(c.score.overlapTags.length ? c.score.overlapTags : c.tags.slice(0, 4)).map((t) => (
+              {(((c as any).tags ?? (c as any).overlapTags ?? (c as any).lookingForTags ?? (c as any).aboutMeTags ?? []) as string[]).slice(0,4).map((t) => (
                 <Pill key={t}>{t}</Pill>
               ))}
             </div>
