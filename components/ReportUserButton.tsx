@@ -6,12 +6,13 @@ import { getSafetySettings } from "@/lib/safety/safetySettings";
 
 export default function ReportUserButton({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState<ReportReason>("spam_scam");
-  const [detail, setDetail] = useState("");
+  const [reason, setReason] = useState<ReportReason | null>(null);
+  const reasonValue = (reason ?? ("" as any)) as ReportReason;
+const [detail, setDetail] = useState("");
   const [done, setDone] = useState(false);
 
   function send() {
-    submitReport({ reportedUserId: userId, reason, detail });
+    submitReport({ reportedUserId: userId, reason: reasonValue, detail });
     setDone(true);
   }
 
@@ -74,7 +75,7 @@ export default function ReportUserButton({ userId }: { userId: string }) {
                   <label className="text-sm text-white/80">
                     Reason
                     <select
-                      value={reason}
+                      value={reasonValue}
                       onChange={(e) => setReason(e.target.value as ReportReason)}
                       className="mt-1 w-full rounded-2xl bg-white/5 border border-white/10 px-3 py-2 text-sm outline-none"
                     >

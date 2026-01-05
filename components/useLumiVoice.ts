@@ -174,10 +174,11 @@ export default function useLumiVoice() {
     stop();
     cancelRef.current = false;
 
+    const breathOn = getLumiBreathMode();
+
     const prepared = breathOn ? addBreath(cleaned) : cleaned;
     const chunks = chunkText(prepared);
     const style = getLumiVoiceStyle();
-    const breathOn = getLumiBreathMode();
     const tuning = getLumiVoiceTuning();
 
     const STYLE = {

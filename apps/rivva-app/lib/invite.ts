@@ -3,25 +3,26 @@ export type InviteRequest = {
   source?: string;
 };
 
-export async function submitInviteRequest(input: InviteRequest): Promise<{ ok: boolean }> {
-  // MVP: store locally + best-effort POST if an API exists later
-  if (typeof window !== "undefined") {
-    try {
-      const key = "rivva.invite.requests.v1";
-      const existing = JSON.parse(localStorage.getItem(key) || "[]") as InviteRequest[];
-      existing.push({ email: input.email, source: input.source ?? "rivva-app" });
-      localStorage.setItem(key, JSON.stringify(existing));
-    } catch {}
-  }
+const KEY = "rivva.inviteRequests.v1";
+
+export async function submitInviteRequest(input: InviteRequest) {
+  // MVP: local persistence only (no backend yet)
+  if (typeof window === "undefined") return { ok: true };
+
+  const payload = {
+    email: input.email.trim().toLowerCase(),
+    source: input.source ?? "rivva-app",
+    createdAt: new Date().toISOString(),
+  };
 
   try {
-    // Optional: if you add an API route later, this will start working automatically.
-    await fetch("/api/invite", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
-    });
-  } catch {}
+    const raw = localStorage.getItem(KEY);
+    const existing = raw ? (JSON.parse(raw) as any[]) : [];
+    existing.unshift(payload);
+    localStorage.setItem(KEY, JSON.stringify(existing.slice(0, 200)));
+  } catch {
+    // ignore in MVP
+  }
 
   return { ok: true };
 }

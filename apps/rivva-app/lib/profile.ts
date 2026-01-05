@@ -1,14 +1,23 @@
 export type UserProfile = {
-  
-  quizTier?: "A" | "B" | "C" | "D" | "E";
-id: string;
+  id: string;
   name: string;
+
+  // Optional profile fields (MVP: keep loose)
   age?: number;
   city?: string;
+
+  // Geolocation (optional – can replace city later)
+  geo?: { lat: number; lng: number; radiusMiles?: number };
+
   intent?: "dating" | "serious" | "friendship";
+  quizTier?: "A" | "B" | "C" | "D" | "E";
+
   aboutMeTags?: string[];
   lookingForTags?: string[];
   boundaries?: string[];
+
+  // Legacy/compat fields we may still read from storage
+  lookingFor?: string;
 };
 
 const PROFILE_KEY = "rivva.profile.v1";

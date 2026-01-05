@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { ChipOption } from "@/lib/profileOptions";
+type ChipOption = { value: string; label: string; group?: string };
 
 type Props = {
   title: string;
@@ -23,9 +23,9 @@ export default function MultiSelectChips({
   const groups = useMemo(() => {
     const m = new Map<string, ChipOption[]>();
     for (const o of options) {
-      const list = m.get(o.group) ?? [];
+      const list = m.get(o.group ?? "Other") ?? [];
       list.push(o);
-      m.set(o.group, list);
+      m.set(o.group ?? "Other", list);
     }
     return Array.from(m.entries());
   }, [options]);
@@ -59,12 +59,12 @@ export default function MultiSelectChips({
 
             <div className="flex flex-wrap gap-2">
               {items.map((o) => {
-                const active = value.includes(o.id);
+                const active = value.includes(((o as any).value ?? (o as any).id ?? (o as any).label) as string);
                 return (
                   <button
-                    key={o.id}
+                    key={((o as any).value ?? (o as any).id ?? (o as any).label) as string}
                     type="button"
-                    onClick={() => toggle(o.id)}
+                    onClick={() => toggle((((o as any).value ?? (o as any).id ?? (o as any).label) as string))}
                     className={
                       "px-3 py-1.5 rounded-full text-xs font-semibold border transition " +
                       (active

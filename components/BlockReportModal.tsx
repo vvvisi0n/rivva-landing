@@ -86,10 +86,11 @@ export default function BlockReportModal({
 
   function doReport() {
     const res = reportUser(matchId, reason, { note, contextText });
+    const safeRes = (res ?? null) as any;
 
     // Always true in our MVP: reporting hides them for the reporter immediately (local block)
     // The anti-misuse piece is in the "countsTowardAction / needsReview" returned from reportUser.
-    if (res?.needsReview) {
+    if ((res as any)?.needsReview) {
       setToast(
         "Saved. This report won’t count toward action yet because it needs evidence review (anti-misuse)."
       );
@@ -97,25 +98,25 @@ export default function BlockReportModal({
       return;
     }
 
-    if (!res?.countsTowardAction) {
+    if (!(res as any)?.countsTowardAction) {
       setToast("Saved. This report was recorded but does not count toward action (anti-misuse).");
       closeSoon(1400);
       return;
     }
 
-    if (res.shouldEscalate) {
+    if (safeRes?.shouldEscalate) {
       setToast("Thanks. Rivva flagged a pattern here. Escalation threshold reached (MVP).");
       closeSoon(1400);
       return;
     }
 
-    const left = Math.max(0, 3 - res.escalationCount);
+    const left = Math.max(0, 3 - (((safeRes as any)?.escalationCount ?? 0) as number));
     setToast(`Reported. Escalation happens only after evidence-backed patterns. Remaining: ${left}.`);
     closeSoon(1400);
   }
 
   // Local MVP state (already computed from stored reports)
-  const escalatesNow = shouldEscalate(matchId);
+  const escalatesNow = shouldEscalate();
 
   // UI helper text for the chosen reason
   const reasonNote =

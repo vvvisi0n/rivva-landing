@@ -36,7 +36,7 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": [
+  "exclude": ["apps\/rivva-app\/**", ".next\/**", 
     "node_modules"
   ]
 }

@@ -51,3 +51,19 @@ export function rankCandidates(viewer: any, candidates: any[]): RankedCandidate[
     .filter((x) => x.id)
     .sort((a, b) => b.score - a.score);
 }
+
+function distanceMiles(viewer: any, cand: any): number | null {
+  const vg = viewer?.geo;
+  const cg = cand?.geo;
+  if (!vg || !cg) return null;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const R = 3958.7613;
+  const dLat = toRad(cg.lat - vg.lat);
+  const dLng = toRad(cg.lng - vg.lng);
+  const lat1 = toRad(vg.lat);
+  const lat2 = toRad(cg.lat);
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(s)));
+}
