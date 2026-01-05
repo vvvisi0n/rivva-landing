@@ -4,17 +4,40 @@ export type ChipOption = {
   group?: string;
 };
 
-export const ABOUT_ME_GROUPS: { group: string; options: ChipOption[] }[] = [];
-export const LOOKING_FOR_GROUPS: { group: string; options: ChipOption[] }[] = [];
+export type ChipGroup = {
+  group: string;
+  options: ChipOption[];
+};
 
-export function flattenGroups(groups: { group: string; options: ChipOption[] }[]): ChipOption[] {
-  return (groups ?? []).flatMap((g) =>
-    (g.options ?? []).map((o) => ({
-      id: o.id,
-      label: o.label,
-      group: o.group ?? g.group,
-    }))
-  );
+export const ABOUT_ME_GROUPS: ChipGroup[] = [
+  {
+    group: "About me",
+    options: [
+      { id: "am_calm", label: "Calm", group: "About me" },
+      { id: "am_funny", label: "Funny", group: "About me" },
+      { id: "am_ambitious", label: "Ambitious", group: "About me" },
+      { id: "am_thoughtful", label: "Thoughtful", group: "About me" },
+    ],
+  },
+];
+
+export const LOOKING_FOR_GROUPS: ChipGroup[] = [
+  {
+    group: "Looking for",
+    options: [
+      { id: "lf_serious", label: "Serious", group: "Looking for" },
+      { id: "lf_dating", label: "Dating", group: "Looking for" },
+      { id: "lf_friendship", label: "Friendship", group: "Looking for" },
+    ],
+  },
+];
+
+export function flattenGroups(groups: ChipGroup[]): ChipOption[] {
+  const out: ChipOption[] = [];
+  for (const g of groups) {
+    for (const o of g.options) out.push({ ...o, group: o.group ?? g.group });
+  }
+  return out;
 }
 
 export function idToLabel(id: string): string {
@@ -22,6 +45,6 @@ export function idToLabel(id: string): string {
     ...flattenGroups(ABOUT_ME_GROUPS),
     ...flattenGroups(LOOKING_FOR_GROUPS),
   ];
-
-  return all.find((x) => x.id === id)?.label ?? id;
+  const hit = all.find((o) => o.id === id);
+  return hit?.label ?? id;
 }

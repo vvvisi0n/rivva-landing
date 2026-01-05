@@ -2,21 +2,21 @@ export type UserProfile = {
   id: string;
   name: string;
 
+  // Optional profile fields (MVP-safe)
   age?: number;
-
-  // MVP: location signal (preferred)
-  geo?: { lat: number; lng: number; radiusMiles?: number };
-
-  // Optional fallback display (don’t duplicate with geo)
   city?: string;
 
+  // Geo (for future: geolocation-based matching)
+  geo?: { lat: number; lng: number; radiusMiles?: number };
+
   intent?: "dating" | "serious" | "friendship";
-
   quizTier?: "A" | "B" | "C" | "D" | "E";
-
   aboutMeTags?: string[];
   lookingForTags?: string[];
   boundaries?: string[];
+
+  // legacy field (some pages referenced it earlier)
+  lookingFor?: string;
 };
 
 const PROFILE_KEY = "rivva.profile.v1";

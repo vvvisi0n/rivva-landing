@@ -6,7 +6,9 @@
 function normalizeBlockRecord(r: any): BlockRecord {
   const matchId = String(r?.matchId ?? r?.id ?? r?.blockedId ?? "");
   const createdAt = String(r?.createdAt ?? new Date().toISOString());
-  return { matchId, createdAt };
+  const id = String(r?.id ?? matchId);
+  const blockedAt = String(r?.blockedAt ?? createdAt);
+  return { id, matchId, blockedAt, createdAt };
 }
 
 const KEY = "rivva_blocked_users";
@@ -64,7 +66,8 @@ export function clearBlocked(): boolean {
 
 export type BlockRecord = {
   matchId: string;
-  id: string;
+    createdAt?: string;
+id: string;
   blockedAt: string;
 };
 
@@ -72,6 +75,7 @@ export function getBlockedList(): BlockRecord[] {
   const ids = getBlockedIds();
   return ids.map((id) => ({
     id,
+    matchId: id,
     blockedAt: new Date(0).toISOString(),
   }));
 }

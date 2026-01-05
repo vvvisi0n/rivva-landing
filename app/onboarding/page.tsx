@@ -112,7 +112,7 @@ export default function OnboardingPage() {
           <MultiSelectChips
             label="About me"
             helper="This helps Rivva match your emotional vibe, not just your photos."
-            options={ABOUT_ME_OPTIONS.map(o => o.id)}
+            options={ABOUT_ME_OPTIONS}
             value={aboutMeTags}
             onChange={setAboutMeTags}
             max={8}

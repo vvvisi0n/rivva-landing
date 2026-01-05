@@ -1,9 +1,19 @@
 "use client";
 
 import { loadProfile } from "@/lib/profile";
-import { idToLabel } from "@/lib/profileOptions";
 import type { Match } from "@/lib/matches";
 import { ABOUT_ME_GROUPS, LOOKING_FOR_GROUPS, flattenGroups } from "@/lib/profileOptions";
+
+
+function idToLabel(id: string): string {
+  try {
+    const flat = flattenGroups([...(ABOUT_ME_GROUPS as any), ...(LOOKING_FOR_GROUPS as any)] as any);
+    const hit = (flat as any[]).find((o) => o?.id === id);
+    return (hit?.label ?? id) as string;
+  } catch {
+    return id;
+  }
+}
 
 type Props = { match: Match };
 
