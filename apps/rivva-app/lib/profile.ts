@@ -1,23 +1,24 @@
+export type QuizTier = "A" | "B" | "C" | "D" | "E";
+
 export type UserProfile = {
   id: string;
   name: string;
 
-  // Optional profile fields (MVP: keep loose)
   age?: number;
+
+  // If you switch to geo-only later, keep city optional anyway.
   city?: string;
 
-  // Geolocation (optional – can replace city later)
+  // Geo is optional for now (MVP), but ready for later.
   geo?: { lat: number; lng: number; radiusMiles?: number };
 
   intent?: "dating" | "serious" | "friendship";
-  quizTier?: "A" | "B" | "C" | "D" | "E";
+
+  quizTier?: QuizTier;
 
   aboutMeTags?: string[];
   lookingForTags?: string[];
   boundaries?: string[];
-
-  // Legacy/compat fields we may still read from storage
-  lookingFor?: string;
 };
 
 const PROFILE_KEY = "rivva.profile.v1";
@@ -38,7 +39,7 @@ export function loadProfile(): UserProfile | null {
 }
 
 export function patchProfile(patch: Partial<UserProfile>) {
-  const current = loadProfile() ?? ({} as UserProfile);
+  const current = loadProfile() ?? ({ id: "local", name: "You" } as UserProfile);
   const merged = { ...current, ...patch } as UserProfile;
   saveProfile(merged);
   return merged;
