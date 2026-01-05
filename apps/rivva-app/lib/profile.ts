@@ -1,20 +1,18 @@
-export type QuizTier = "A" | "B" | "C" | "D" | "E";
-
 export type UserProfile = {
   id: string;
   name: string;
 
   age?: number;
 
-  // If you switch to geo-only later, keep city optional anyway.
-  city?: string;
-
-  // Geo is optional for now (MVP), but ready for later.
+  // MVP: location signal (preferred)
   geo?: { lat: number; lng: number; radiusMiles?: number };
+
+  // Optional fallback display (don’t duplicate with geo)
+  city?: string;
 
   intent?: "dating" | "serious" | "friendship";
 
-  quizTier?: QuizTier;
+  quizTier?: "A" | "B" | "C" | "D" | "E";
 
   aboutMeTags?: string[];
   lookingForTags?: string[];
@@ -39,7 +37,7 @@ export function loadProfile(): UserProfile | null {
 }
 
 export function patchProfile(patch: Partial<UserProfile>) {
-  const current = loadProfile() ?? ({ id: "local", name: "You" } as UserProfile);
+  const current = loadProfile() ?? ({} as UserProfile);
   const merged = { ...current, ...patch } as UserProfile;
   saveProfile(merged);
   return merged;
