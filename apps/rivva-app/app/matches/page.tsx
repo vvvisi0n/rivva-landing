@@ -52,7 +52,9 @@ export default function MatchesPage() {
   }, []);
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10 text-white">
+    <>
+      <FirstMatchMoment />
+      <main className="mx-auto max-w-5xl px-6 py-10 text-white">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Matches</h1>
@@ -133,5 +135,6 @@ export default function MatchesPage() {
         })}
       </div>
     </main>
+    </>
   );
 }
