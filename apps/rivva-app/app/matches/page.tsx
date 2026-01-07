@@ -1,6 +1,5 @@
 "use client";
 
-
 import FirstMatchMoment from "@/components/matches/FirstMatchMoment";
 
 import Link from "next/link";
