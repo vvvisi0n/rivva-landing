@@ -2,6 +2,7 @@
 
 import FirstMatchMoment from "@/components/matches/FirstMatchMoment";
 
+
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { loadProfile } from "@/lib/profile";
@@ -56,6 +57,7 @@ export default function MatchesPage() {
   return (
     <>
       <FirstMatchMoment />
+<FirstMatchMoment />
       <main className="mx-auto max-w-5xl px-6 py-10 text-white">
       <div className="flex items-start justify-between gap-4">
         <div>
