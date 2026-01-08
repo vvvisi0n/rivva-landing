@@ -68,7 +68,7 @@ export default function MatchesPage() {
           <Link href="/profile" className="rounded-2xl bg-white/10 border border-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/15 transition">
             Edit profile
           </Link>
-          <Link href="/discover" className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90 transition">
+          <Link href="/discover" className="rounded-2xl bg-white/10 border border-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15 transition">
             Discover
           </Link>
         </div>
@@ -78,7 +78,7 @@ export default function MatchesPage() {
         <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <p className="text-sm text-white/70">Tip: add tags + quiz results for better ranking.</p>
           <div className="mt-3 flex gap-2">
-            <Link href="/quiz" className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90 transition">
+            <Link href="/quiz" className="rounded-2xl bg-white/10 border border-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15 transition">
               Take quiz
             </Link>
             <Link href="/profile" className="rounded-2xl bg-white/10 border border-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/15 transition">
@@ -114,8 +114,7 @@ export default function MatchesPage() {
                 </div>
 
                 <div className="text-right">
-                  <p className="text-xs text-white/60">Score</p>
-                  <p className="text-lg font-semibold">{score}</p>
+                  <p className="text-lg font-semibold">Fit</p>
                 </div>
               </div>
 

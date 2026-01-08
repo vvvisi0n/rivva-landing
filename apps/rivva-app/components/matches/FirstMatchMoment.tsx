@@ -44,7 +44,7 @@ export default function FirstMatchMoment() {
         <div className="mt-4 flex gap-2">
           <Link
             href="/discover"
-            className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90 transition"
+            className="rounded-2xl bg-white/10 border border-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15 transition"
           >
             Explore
           </Link>
